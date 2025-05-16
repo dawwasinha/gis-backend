@@ -23,18 +23,10 @@ class UserRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $this->user?->id,
-            'password' => $this->isMethod('post') ? 'required|string|min:8' : 'sometimes|string|min:8',
-            'nisn' => 'required|integer',
-            'nomor_wa' => 'required|string|max:15',
-            'alamat' => 'required|string|max:255',
-            'provinsi_id' => 'required|string|max:255',
-            'kabupaten_id' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,',
             'jenjang' => 'required|string|max:255',
-            'kelas' => 'required|string|max:255',
-            'asal_sekolah' => 'required|string|max:255',
-            'link_twibbon' => 'nullable|url|max:255',
-            // 'link_bukti_pembayaran' => 'nullable|url|max:255',
+            'password' => $this->isMethod('post') ? 'required|string|min:8' : 'sometimes|string|min:8',
+            'jenis_lomba' => 'required|string|max:255',
         ];
     }
 }

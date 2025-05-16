@@ -37,6 +37,7 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $fillable = [
         'name',
+        'role',
         'email',
         'password',
         'nisn',
@@ -44,11 +45,13 @@ class User extends Authenticatable implements JWTSubject
         'alamat',
         'provinsi_id',
         'kabupaten_id',
+        'jenis_lomba',
         'jenjang',
         'kelas',
         'asal_sekolah',
         'link_twibbon',
         'link_bukti_pembayaran',
+        'status',
     ];
 
     /**

@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -26,18 +28,22 @@ class AuthController extends Controller
 
     public function register(UserRequest $request)
     {
-        $user = $this->userService->createUser($request->validated());
-
         try {
+            Log::info('Registering user', ['request' => $request->all()]);
+
+            $user = $this->userService->createUser($request->validated());
+
             $token = JWTAuth::fromUser($user);
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user,
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
         } catch (JWTException $e) {
             return response()->json(['error' => 'Could not create token'], 500);
         }
-
-        return response()->json([
-            'token' => $token,
-            'user' => $user,
-        ], 201);
     }
 
     public function login(Request $request)
@@ -59,7 +65,9 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
+            'role' => Auth::user()->role,
             'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'user' => Auth::user(),
         ]);
     }
 

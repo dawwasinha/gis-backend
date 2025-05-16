@@ -19,8 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // 'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['http://localhost:5174', 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'https://6f78-180-241-5-241.ngrok-free.app', 'https://gisunesa.com'],
 
     'allowed_origins_patterns' => [],
 
