@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request; 
 use App\Services\UserService;
@@ -50,7 +51,7 @@ class UserController extends Controller
     /**
      * Update the specified user in storage.
      */
-    public function update(UserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
         $user = $this->userService->updateUser($user, $request->validated());
 
@@ -82,9 +83,6 @@ class UserController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        Log::info($request->all());
-        Log::info($user);
-        // Validasi data
         $validated = $request->validate([
             'name' => 'required|string',
             'email' => 'required|email',
@@ -94,6 +92,7 @@ class UserController extends Controller
             'provinsi_id' => 'required|integer',
             'kabupaten_id' => 'required|integer',
             'asal_sekolah' => 'nullable|string',
+            'kelas' => 'nullable|string',
             'guru' => 'nullable|string',
             'wa_guru' => 'nullable|string',
             'email_guru' => 'nullable|email',
@@ -111,17 +110,18 @@ class UserController extends Controller
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'nisn' => $validated['nisn'] ?? null,
-            'nomor_wa' => $validated['nomor_wa'] ?? null,
-            'jenis_lomba' => $validated['jenis_lomba'] ?? $user->jenis_lomba,
-            'jenjang' => $validated['jenjang'] ?? $user->jenjang,
-            'alamat' => $validated['alamat'] ?? null,
+            'nisn' => $validated['nisn'],
+            'nomor_wa' => $validated['nomor_wa'],
+            'jenis_lomba' => $user->jenis_lomba,
+            'jenjang' => $user->jenjang,
+            'alamat' => $validated['alamat'],
             'provinsi_id' => $validated['provinsi_id'],
             'kabupaten_id' => $validated['kabupaten_id'],
-            'asal_sekolah' => $validated['asal_sekolah'] ?? null,
-            'guru' => $validated['guru'] ?? null,
-            'wa_guru' => $validated['wa_guru'] ?? null,
-            'email_guru' => $validated['email_guru'] ?? null,
+            'asal_sekolah' => $validated['asal_sekolah'],
+            'kelas' => $validated['kelas'] ?? $user->kelas,
+            'guru' => $validated['guru'],
+            'wa_guru' => $validated['wa_guru'],
+            'email_guru' => $validated['email_guru'],
             'link_twibbon' => $validated['link_twibbon'] ?? $user->link_twibbon,
             'status' => 'pending',
             'email_verified_at' => Carbon::now(),
@@ -130,5 +130,19 @@ class UserController extends Controller
         return response()->json($user->fresh());
     }
 
+
+    public function verifSuccess($id)
+    {
+        $user = User::where('id', $id)->first();
+        if (!$user) {
+            return response()->json(['error' => 'not found'], 404);
+        }
+
+        $user->update([
+            'status' => 'success',
+        ]);
+
+        return response()->json($user->fresh());
+    }
 
 }

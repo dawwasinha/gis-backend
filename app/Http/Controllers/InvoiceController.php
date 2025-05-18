@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,8 +49,8 @@ class InvoiceController extends Controller
      */
     public function show($id)
     {
-        $idd = Auth::user()->id;
-        $invoice = Invoice::findOrFail($idd);
+        $user_id = User::where('id', $id)->value('id');
+        $invoice = Invoice::where('user_id', $user_id)->get();
 
         return response()->json($invoice);
     }
@@ -66,31 +67,22 @@ class InvoiceController extends Controller
             'kode_bayar' => 'sometimes|unique:invoices,kode_bayar,' . $id,
             'status' => 'sometimes|string',
             'total_pembayaran' => 'sometimes|numeric',
-            'upload_bukti' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // validasi file gambar
+            'upload_bukti' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Jika ada file upload_bukti
         if ($request->hasFile('upload_bukti')) {
-            $file = $request->file('upload_bukti');
-            $filename = time() . '_' . $file->getClientOriginalName();
-
-            // Simpan file ke folder public/storage/bukti (bisa sesuaikan)
-            $file->storeAs('public/bukti', $filename);
-
-            // Simpan path file di $validated supaya bisa diupdate ke DB
-            $validated['upload_bukti'] = 'bukti/' . $filename;
-        } else {
-            // Jika tidak ada file di request, hapus field upload_bukti dari validated supaya tidak diupdate
-            unset($validated['upload_bukti']);
+            $path = $request->file('upload_bukti')->store('bukti', 'public');
+            $validated['upload_bukti'] = $path;
         }
 
         $invoice->update($validated);
 
         return response()->json([
             'validated' => $validated,
-            'invoice' => $invoice
+            'invoice' => $invoice->fresh()
         ]);
     }
+
 
 
     /**
