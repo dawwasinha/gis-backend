@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\UsersExport;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request; 
 use App\Services\UserService;
 use App\Http\Requests\UserRequest;
+use App\Models\Invoice;
+use App\Models\Karya;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -63,6 +67,9 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        Karya::where('user_id', $user->id)->delete();
+        Invoice::where('user_id', $user->id)->delete();
+
         $response = $this->userService->deleteUser($user);
         return response()->json($response);
     }
@@ -119,9 +126,9 @@ class UserController extends Controller
             'kabupaten_id' => $validated['kabupaten_id'],
             'asal_sekolah' => $validated['asal_sekolah'],
             'kelas' => $validated['kelas'] ?? $user->kelas,
-            'guru' => $validated['guru'],
-            'wa_guru' => $validated['wa_guru'],
-            'email_guru' => $validated['email_guru'],
+            'guru' => $validated['guru'] ?? "",
+            'wa_guru' => $validated['wa_guru'] ?? "",
+            'email_guru' => $validated['email_guru'] ?? "",
             'link_twibbon' => $validated['link_twibbon'] ?? $user->link_twibbon,
             'status' => 'pending',
             'email_verified_at' => Carbon::now(),
@@ -141,8 +148,17 @@ class UserController extends Controller
         $user->update([
             'status' => 'success',
         ]);
+        
+        $invoice = Invoice::where('user_id', $id)->update([
+            'status' => 'success'
+        ]);
 
         return response()->json($user->fresh());
+    }
+
+    public function export(Request $request)
+    {
+        return Excel::download(new UsersExport, 'users.xlsx');
     }
 
 }

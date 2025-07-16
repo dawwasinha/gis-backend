@@ -29,9 +29,9 @@ class InvoiceController extends Controller
 
         // Tentukan total pembayaran berdasarkan jenis_lomba
         if ($request->jenis_lomba === 'science-competition') {
-            $validated['total_pembayaran'] = 60000;
-        } elseif ($request->jenis_lomba === 'science-writing') {
             $validated['total_pembayaran'] = 65000;
+        } elseif ($request->jenis_lomba === 'science-writing') {
+            $validated['total_pembayaran'] = 70000;
         } else {
             return response()->json(['error' => 'Jenis lomba tidak valid'], 400);
         }
@@ -67,7 +67,7 @@ class InvoiceController extends Controller
             'kode_bayar' => 'sometimes|unique:invoices,kode_bayar,' . $id,
             'status' => 'sometimes|string',
             'total_pembayaran' => 'sometimes|numeric',
-            'upload_bukti' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'upload_bukti' => 'nullable|mimes:jpeg,png,jpg,gif,pdf',
         ]);
 
         if ($request->hasFile('upload_bukti')) {

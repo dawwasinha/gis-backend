@@ -76,4 +76,10 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
         ];
     }
+
+    public function karyas()
+    {
+        return $this->hasMany(Karya::class); // Relasi ke model Karya
+    }
+
 }
