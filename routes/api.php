@@ -8,16 +8,34 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\KaryaController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\UserAnswerController;
 use App\Models\User;
+use Illuminate\Container\Attributes\Auth;
 use Illuminate\Support\Facades\Hash;
-
-// Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-//     return $request->user();
-// });
 
 Route::get('/users/export', [ExportController::class, 'export']);
 
 Route::middleware(['jwt'])->group(function () {
+    // Tambahan fitur soal dan jawaban
+    Route::prefix('exam')->group(function () {
+        // Manajemen soal
+        Route::get('/questions', [QuestionController::class, 'index']);
+        Route::post('/questions', [QuestionController::class, 'store']);
+        Route::get('/questions/{id}', [QuestionController::class, 'show']);
+        Route::put('/questions/{id}', [QuestionController::class, 'update']);
+        Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
+
+        // Jawaban user
+        Route::post('/user-answers', [UserAnswerController::class, 'store']);
+        Route::get('/user-answers/{user_id}', [UserAnswerController::class, 'listByUser']);
+        Route::delete('/user-answers/{id}', [UserAnswerController::class, 'destroy']);
+        Route::patch('/user-answers/{id}/toggle-doubt', [UserAnswerController::class, 'toggleDoubt']);
+        Route::patch('/exam/user-answers/{id}/unset-doubt', [UserAnswerController::class, 'unsetDoubt']);
+        Route::get('/results/{user_id}', [UserAnswerController::class, 'result']);
+    });
+
+    // Route lainnya (dari kamu sebelumnya)
     Route::get('/invoices/byAuth', [InvoiceController::class, 'byAuth']);
     Route::get('/users/byAuth', [UserController::class, 'byAuth']);
     Route::post('/participants', [UserController::class, 'participants']);
@@ -26,6 +44,7 @@ Route::middleware(['jwt'])->group(function () {
 
     Route::get('/karya/{id}', [KaryaController::class, 'show']);
     Route::apiResource('karya', KaryaController::class);
+
     // Grup khusus admin
     Route::middleware(['admin'])->group(function () {
         Route::put('/users/verifSuccess/{id}', [UserController::class, 'verifSuccess']);
@@ -35,7 +54,6 @@ Route::middleware(['jwt'])->group(function () {
 
         Route::patch('/invoices/{invoice}', [InvoiceController::class, 'update']);                      
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
-        // Route::apiResource('invoices', InvoiceController::class);
         Route::apiResource('users', UserController::class);
     });
 });
@@ -49,6 +67,16 @@ Route::post('/login', [AuthController::class, 'login']);
 //     return response()->json(['message' => 'Register endpoint']);
 // });
 Route::post('/register', [AuthController::class, 'register']);
+
+Route::post('/forgot-password', [AuthController::class, 'sendResetCode']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+Route::get('/preview-email', function () {
+    return view('emails.reset-password-code', [
+        'token' => '123456',
+    ]); 
+});
+
 
 Route::get('/download/karya/{filename}', function ($filename) {
     $path = 'karya/' . $filename;

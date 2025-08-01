@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@gis.com',
             'role' => 'admin',
-            'password' => bcrypt('admin123'),
+            'password' => bcrypt('gis2025sukses'),
             'jenis_lomba' => 'admin',
             'jenjang' => 'admin',
         ]);

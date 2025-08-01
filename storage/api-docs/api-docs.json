@@ -1,0 +1,831 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Gis Backend API",
+        "description": "Dokumentasi API untuk platform Gis Backend",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register akun baru",
+                "operationId": "8a56853624e025573120a09a4c75d468",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User terdaftar"
+                    },
+                    "422": {
+                        "description": "Validasi gagal"
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login dengan email & password",
+                "operationId": "a3b306d14572d1f4bd6c064b3233e7b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "siti@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "rahasia123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Berhasil login dan mendapatkan token"
+                    },
+                    "401": {
+                        "description": "Kredensial salah"
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout dan invalidasi token",
+                "operationId": "fe8f3429cd6979b3b4517e186505f9f9",
+                "responses": {
+                    "200": {
+                        "description": "Berhasil logout"
+                    },
+                    "500": {
+                        "description": "Gagal logout"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/forgot-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Kirim kode reset password ke email",
+                "operationId": "b864911ee5dc7612634de6a9c0d5ba6f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Kode dikirim ke email"
+                    },
+                    "422": {
+                        "description": "Validasi gagal"
+                    }
+                }
+            }
+        },
+        "/api/reset-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset password dengan token yang dikirim",
+                "operationId": "00c0aad74830221c6da409a1355ec736",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "token",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password berhasil direset"
+                    },
+                    "400": {
+                        "description": "Token tidak valid atau kadaluarsa"
+                    },
+                    "422": {
+                        "description": "Validasi gagal"
+                    }
+                }
+            }
+        },
+        "/api/users/byAuth": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Ambil data user yang sedang login",
+                "operationId": "46bf5ff52b5e15536d4544e8f5e816a8",
+                "responses": {
+                    "200": {
+                        "description": "Profil user"
+                    },
+                    "404": {
+                        "description": "User tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Update data user yang sedang login",
+                "operationId": "74763b0039558af2031f5b93b21addce",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User berhasil diupdate"
+                    },
+                    "500": {
+                        "description": "Gagal update"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/questions": {
+            "get": {
+                "tags": [
+                    "Question"
+                ],
+                "summary": "Ambil semua soal (opsional filter level)",
+                "operationId": "6b948fb7b3685f8f45941d7a9e1f01e9",
+                "parameters": [
+                    {
+                        "name": "level",
+                        "in": "query",
+                        "description": "Level soal (SD atau SMP)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "SD",
+                                "SMP"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar soal berhasil diambil"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Question"
+                ],
+                "summary": "Buat soal baru beserta 4 jawaban",
+                "operationId": "eb4b4ac219a9991ba3cfdf874fe2820f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "level",
+                                    "type",
+                                    "answers"
+                                ],
+                                "properties": {
+                                    "level": {
+                                        "type": "string",
+                                        "enum": [
+                                            "SD",
+                                            "SMP"
+                                        ]
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "question_text": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "question_img": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "type"
+                                            ],
+                                            "properties": {
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "text",
+                                                        "image"
+                                                    ]
+                                                },
+                                                "answer_text": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "answer_img": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "is_correct": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "maxItems": 4,
+                                        "minItems": 4
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Soal berhasil disimpan"
+                    },
+                    "422": {
+                        "description": "Validasi gagal"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/questions/{id}": {
+            "get": {
+                "tags": [
+                    "Question"
+                ],
+                "summary": "Ambil detail soal berdasarkan ID",
+                "operationId": "1df3e3e99eee6c067abbfefdb7bebadf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID soal",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detail soal berhasil diambil"
+                    },
+                    "404": {
+                        "description": "Soal tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Question"
+                ],
+                "summary": "Perbarui soal dan jawabannya",
+                "operationId": "d6bd32bedabb75d8f79e7833178c84ef",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID soal",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "level",
+                                    "type",
+                                    "answers"
+                                ],
+                                "properties": {
+                                    "level": {
+                                        "type": "string",
+                                        "enum": [
+                                            "SD",
+                                            "SMP"
+                                        ],
+                                        "example": "SD"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ],
+                                        "example": "text"
+                                    },
+                                    "question_text": {
+                                        "type": "string",
+                                        "example": "Apa ibukota Indonesia?",
+                                        "nullable": true
+                                    },
+                                    "question_img": {
+                                        "type": "string",
+                                        "example": "http://example.com/image.png",
+                                        "nullable": true
+                                    },
+                                    "answers": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "type",
+                                                "is_correct"
+                                            ],
+                                            "properties": {
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "text",
+                                                        "image"
+                                                    ],
+                                                    "example": "text"
+                                                },
+                                                "answer_text": {
+                                                    "type": "string",
+                                                    "example": "Jakarta",
+                                                    "nullable": true
+                                                },
+                                                "answer_img": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "is_correct": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "maxItems": 4,
+                                        "minItems": 4
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Soal berhasil diperbarui"
+                    },
+                    "422": {
+                        "description": "Validasi gagal"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Question"
+                ],
+                "summary": "Hapus soal berdasarkan ID",
+                "operationId": "0afb391331551b46a379aa812a0b48f0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID soal",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Soal berhasil dihapus"
+                    },
+                    "404": {
+                        "description": "Soal tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/user-answers": {
+            "post": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "Submit jawaban user",
+                "operationId": "c5a84cc16f931f86f47ad43c2844b8a8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "question_id",
+                                    "answer_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "answer_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Jawaban disimpan"
+                    },
+                    "422": {
+                        "description": "Jawaban tidak sesuai dengan soal"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/user-answers/{id}": {
+            "delete": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "Batalkan jawaban user",
+                "operationId": "76af2e2083c048bee4b683bfd4c5a957",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID jawaban user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jawaban dibatalkan"
+                    },
+                    "404": {
+                        "description": "Jawaban tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/user-answers/{user_id}": {
+            "get": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "List jawaban user berdasarkan user_id",
+                "operationId": "3bd2fe27dabd798db0bbd16150d14cfc",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "ID user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar jawaban user"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/user-answers/{id}/toggle-doubt": {
+            "patch": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "Toggle status ragu-ragu pada jawaban",
+                "operationId": "fe3a78a1a7e032b595e72ec514609af6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID jawaban user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status ragu-ragu diperbarui"
+                    },
+                    "404": {
+                        "description": "Jawaban tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/user-answers/{id}/unset-doubt": {
+            "patch": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "Batalkan status ragu-ragu pada jawaban user (set is_doubtful ke false)",
+                "operationId": "88b8c05a6e495e049951a3536d7dabb6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID jawaban user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status ragu-ragu dibatalkan"
+                    },
+                    "404": {
+                        "description": "Jawaban tidak ditemukan"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/results/{user_id}": {
+            "get": {
+                "tags": [
+                    "UserAnswer"
+                ],
+                "summary": "Hitung hasil jawaban user",
+                "operationId": "e9de97ac6cad5b8532eda2a1fc8a5cd3",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "ID user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ringkasan hasil user (benar, salah, kosong)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserRequest": {
+                "required": [
+                    "name",
+                    "email",
+                    "jenjang",
+                    "password",
+                    "jenis_lomba"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "Siti Aminah"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "siti@example.com"
+                    },
+                    "jenjang": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "SMP"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "minLength": 8,
+                        "example": "rahasia123"
+                    },
+                    "jenis_lomba": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "IPA"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Autentikasi dan manajemen akun pengguna"
+        },
+        {
+            "name": "Question",
+            "description": "Manajemen soal ujian untuk SD dan SMP"
+        },
+        {
+            "name": "UserAnswer",
+            "description": "Manajemen jawaban user untuk soal ujian"
+        }
+    ]
+}
