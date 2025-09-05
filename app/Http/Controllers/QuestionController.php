@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Question;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @OA\Tag(
@@ -66,30 +67,35 @@ class QuestionController extends Controller
     /**
      * @OA\Post(
      *     path="/api/exam/questions",
-     *     summary="Buat soal baru beserta 4 jawaban",
+     *     summary="Buat soal baru beserta 4 jawaban dengan upload file gambar",
      *     tags={"Question"},
      *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\JsonContent(
-     *             required={"level","type","answers"},
-     *             @OA\Property(property="level", type="string", enum={"SD", "SMP"}),
-     *             @OA\Property(property="type", type="string", enum={"text", "image"}),
-     *             @OA\Property(property="question_text", type="string", nullable=true),
-     *             @OA\Property(property="question_img", type="string", nullable=true),
-     *             @OA\Property(
-     *                 property="answers",
-     *                 type="array",
-     *                 minItems=4,
-     *                 maxItems=4,
-     *                 @OA\Items(
-     *                     type="object",
-     *                     required={"type"},
-     *                     @OA\Property(property="type", type="string", enum={"text", "image"}),
-     *                     @OA\Property(property="answer_text", type="string", nullable=true),
-     *                     @OA\Property(property="answer_img", type="string", nullable=true),
-     *                     @OA\Property(property="is_correct", type="boolean")
-     *                 )
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"level","type","answers"},
+     *                 @OA\Property(property="level", type="string", enum={"SD", "SMP"}),
+     *                 @OA\Property(property="type", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="question_text", type="string", nullable=true),
+     *                 @OA\Property(property="question_img", type="string", format="binary", nullable=true, description="Upload file gambar soal"),
+     *                 @OA\Property(property="answers[0][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[0][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[0][answer_img]", type="string", format="binary", nullable=true, description="Upload file gambar jawaban"),
+     *                 @OA\Property(property="answers[0][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[1][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[1][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[1][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[1][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[2][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[2][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[2][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[2][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[3][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[3][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[3][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[3][is_correct]", type="boolean")
      *             )
      *         )
      *     ),
@@ -103,11 +109,11 @@ class QuestionController extends Controller
             'level' => 'required|in:SD,SMP',
             'type' => 'required|in:text,image',
             'question_text' => 'nullable|string',
-            'question_img' => 'nullable|string',
+            'question_img' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048',
             'answers' => 'required|array|size:4',
             'answers.*.type' => 'required|in:text,image',
             'answers.*.answer_text' => 'nullable|string',
-            'answers.*.answer_img' => 'nullable|string',
+            'answers.*.answer_img' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048',
             'answers.*.is_correct' => 'boolean'
         ]);
 
@@ -116,18 +122,30 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Harus ada tepat satu jawaban yang benar.'], 422);
         }
 
+        // Handle question image upload
+        $questionImgPath = null;
+        if ($request->hasFile('question_img')) {
+            $questionImgPath = $request->file('question_img')->store('questions', 'public');
+        }
+
         $question = Question::create([
             'level' => $request->level,
             'type' => $request->type,
             'question_text' => $request->question_text,
-            'question_img' => $request->question_img
+            'question_img' => $questionImgPath
         ]);
 
-        foreach ($request->answers as $a) {
+        foreach ($request->answers as $index => $a) {
+            // Handle answer image upload
+            $answerImgPath = null;
+            if ($request->hasFile("answers.{$index}.answer_img")) {
+                $answerImgPath = $request->file("answers.{$index}.answer_img")->store('answers', 'public');
+            }
+
             $question->answers()->create([
                 'type' => $a['type'],
                 'answer_text' => $a['answer_text'] ?? null,
-                'answer_img' => $a['answer_img'] ?? null,
+                'answer_img' => $answerImgPath,
                 'is_correct' => $a['is_correct'] ?? false
             ]);
         }
@@ -141,7 +159,7 @@ class QuestionController extends Controller
     /**
      * @OA\Put(
      *     path="/api/exam/questions/{id}",
-     *     summary="Perbarui soal dan jawabannya",
+     *     summary="Perbarui soal dan jawabannya dengan upload file gambar",
      *     tags={"Question"},
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
@@ -153,25 +171,30 @@ class QuestionController extends Controller
      *     ),
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\JsonContent(
-     *             required={"level", "type", "answers"},
-     *             @OA\Property(property="level", type="string", enum={"SD", "SMP"}, example="SD"),
-     *             @OA\Property(property="type", type="string", enum={"text", "image"}, example="text"),
-     *             @OA\Property(property="question_text", type="string", nullable=true, example="Apa ibukota Indonesia?"),
-     *             @OA\Property(property="question_img", type="string", nullable=true, example="http://example.com/image.png"),
-     *             @OA\Property(
-     *                 property="answers",
-     *                 type="array",
-     *                 minItems=4,
-     *                 maxItems=4,
-     *                 @OA\Items(
-     *                     type="object",
-     *                     required={"type", "is_correct"},
-     *                     @OA\Property(property="type", type="string", enum={"text", "image"}, example="text"),
-     *                     @OA\Property(property="answer_text", type="string", nullable=true, example="Jakarta"),
-     *                     @OA\Property(property="answer_img", type="string", nullable=true, example=null),
-     *                     @OA\Property(property="is_correct", type="boolean", example=true)
-     *                 )
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"level", "type", "answers"},
+     *                 @OA\Property(property="level", type="string", enum={"SD", "SMP"}, example="SD"),
+     *                 @OA\Property(property="type", type="string", enum={"text", "image"}, example="text"),
+     *                 @OA\Property(property="question_text", type="string", nullable=true, example="Apa ibukota Indonesia?"),
+     *                 @OA\Property(property="question_img", type="string", format="binary", nullable=true, description="Upload file gambar soal"),
+     *                 @OA\Property(property="answers[0][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[0][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[0][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[0][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[1][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[1][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[1][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[1][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[2][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[2][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[2][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[2][is_correct]", type="boolean"),
+     *                 @OA\Property(property="answers[3][type]", type="string", enum={"text", "image"}),
+     *                 @OA\Property(property="answers[3][answer_text]", type="string", nullable=true),
+     *                 @OA\Property(property="answers[3][answer_img]", type="string", format="binary", nullable=true),
+     *                 @OA\Property(property="answers[3][is_correct]", type="boolean")
      *             )
      *         )
      *     ),
@@ -179,17 +202,21 @@ class QuestionController extends Controller
      *     @OA\Response(response=422, description="Validasi gagal")
      * )
      */
+
     public function update(Request $request, $id)
     {
         $request->validate([
             'level' => 'required|in:SD,SMP',
             'type' => 'required|in:text,image',
             'question_text' => 'nullable|string',
-            'question_img' => 'nullable|string',
+            'question_img' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'existing_question_img_url' => 'nullable|string', // URL gambar existing
             'answers' => 'required|array|size:4',
+            'answers.*.id' => 'nullable', // ID jawaban untuk update existing
             'answers.*.type' => 'required|in:text,image',
             'answers.*.answer_text' => 'nullable|string',
-            'answers.*.answer_img' => 'nullable|string',
+            'answers.*.answer_img' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'answers.*.existing_img_url' => 'nullable|string', // URL gambar jawaban existing
             'answers.*.is_correct' => 'boolean'
         ]);
 
@@ -199,22 +226,76 @@ class QuestionController extends Controller
         }
 
         $question = Question::findOrFail($id);
+        
+        // Handle question image update
+        $questionImgPath = $question->question_img; // Keep existing by default
+        if ($request->hasFile('question_img')) {
+            // Ada file baru - hapus yang lama dan upload yang baru
+            if ($questionImgPath && Storage::disk('public')->exists($questionImgPath)) {
+                Storage::disk('public')->delete($questionImgPath);
+            }
+            $questionImgPath = $request->file('question_img')->store('questions', 'public');
+        }
+        // Jika tidak ada file baru, tetap gunakan gambar existing (tidak berubah)
+        
+        // Update question data
         $question->update([
             'level' => $request->level,
             'type' => $request->type,
             'question_text' => $request->question_text,
-            'question_img' => $request->question_img
+            'question_img' => $questionImgPath
         ]);
 
-        $question->answers()->delete(); // hapus semua jawaban lama
+        // Get existing answers untuk tracking perubahan
+        $existingAnswers = $question->answers()->get()->keyBy('id');
+        $updatedAnswerIds = [];
 
-        foreach ($request->answers as $a) {
-            $question->answers()->create([
-                'type' => $a['type'],
-                'answer_text' => $a['answer_text'] ?? null,
-                'answer_img' => $a['answer_img'] ?? null,
-                'is_correct' => $a['is_correct'] ?? false
-            ]);
+        foreach ($request->answers as $index => $answerData) {
+            // Cari jawaban existing berdasarkan ID (jika ada)
+            $answerId = $answerData['id'] ?? null;
+            $existingAnswer = $answerId ? $existingAnswers->get($answerId) : null;
+            
+            // Handle answer image
+            $answerImgPath = $existingAnswer ? $existingAnswer->answer_img : null; // Default ke existing
+            
+            if (isset($answerData['answer_img']) && $request->hasFile("answers.{$index}.answer_img")) {
+                // Ada file baru - hapus yang lama dan upload yang baru
+                if ($answerImgPath && Storage::disk('public')->exists($answerImgPath)) {
+                    Storage::disk('public')->delete($answerImgPath);
+                }
+                $answerImgPath = $request->file("answers.{$index}.answer_img")->store('answers', 'public');
+            }
+            // Jika tidak ada file baru, tetap gunakan gambar existing (tidak berubah)
+            
+            if ($existingAnswer) {
+                // Update jawaban existing
+                $existingAnswer->update([
+                    'type' => $answerData['type'],
+                    'answer_text' => $answerData['answer_text'] ?? null,
+                    'answer_img' => $answerImgPath,
+                    'is_correct' => $answerData['is_correct'] ?? false
+                ]);
+                $updatedAnswerIds[] = $existingAnswer->id;
+            } else {
+                // Buat jawaban baru
+                $newAnswer = $question->answers()->create([
+                    'type' => $answerData['type'],
+                    'answer_text' => $answerData['answer_text'] ?? null,
+                    'answer_img' => $answerImgPath,
+                    'is_correct' => $answerData['is_correct'] ?? false
+                ]);
+                $updatedAnswerIds[] = $newAnswer->id;
+            }
+        }
+
+        // Hapus jawaban yang tidak ada dalam request (jika ada yang dihapus)
+        $answersToDelete = $existingAnswers->whereNotIn('id', $updatedAnswerIds);
+        foreach ($answersToDelete as $answerToDelete) {
+            // Hapus file gambar jika ada
+            if ($answerToDelete->answer_img && Storage::disk('public')->exists($answerToDelete->answer_img)) {
+                Storage::disk('public')->delete($answerToDelete->answer_img);
+            }
+            $answerToDelete->delete();
         }
 
         return response()->json([
@@ -242,7 +323,20 @@ class QuestionController extends Controller
      */
     public function destroy($id)
     {
-        $question = Question::findOrFail($id);
+        $question = Question::with('answers')->findOrFail($id);
+        
+        // Delete question image if exists
+        if ($question->question_img && Storage::disk('public')->exists($question->question_img)) {
+            Storage::disk('public')->delete($question->question_img);
+        }
+        
+        // Delete answer images if exist
+        foreach ($question->answers as $answer) {
+            if ($answer->answer_img && Storage::disk('public')->exists($answer->answer_img)) {
+                Storage::disk('public')->delete($answer->answer_img);
+            }
+        }
+        
         $question->delete();
 
         return response()->json(['message' => 'Soal berhasil dihapus']);

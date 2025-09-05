@@ -12,6 +12,7 @@ class Answer extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     protected $fillable = ['question_id', 'type', 'answer_text', 'answer_img', 'is_correct'];
+    protected $appends = ['answer_img_url'];
 
     protected static function boot()
     {
@@ -27,5 +28,10 @@ class Answer extends Model
     public function question()
     {
         return $this->belongsTo(Question::class);
+    }
+
+    public function getAnswerImgUrlAttribute()
+    {
+        return $this->answer_img ? asset('storage/' . $this->answer_img) : null;
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -37,7 +38,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping
     public function map($user): array
     {
         $karyaLinks = $user->karyas ? $user->karyas->map(function($karya) {
-            return $karya->link_karya ? "https://gis-backend.karyavisual.com/gis-backend-v2/storage/app/public/" . $karya->link_karya : 'No Link Available';
+            return $karya->link_karya ? "https://gis-backend.karyavisual.com/gis-backend-v5/storage/app/public/" . $karya->link_karya : 'No Link Available';
         })->implode('; ') : 'Belum ada submit jurnal';
  
 

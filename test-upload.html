@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Question Upload</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <h2>Test Question Upload dengan File</h2>
+    
+    <form id="questionForm" enctype="multipart/form-data">
+        <div>
+            <label>Level:</label>
+            <select name="level" required>
+                <option value="SD">SD</option>
+                <option value="SMP">SMP</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Type:</label>
+            <select name="type" required>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Question Text:</label>
+            <textarea name="question_text" placeholder="Masukkan teks soal"></textarea>
+        </div>
+        
+        <div>
+            <label>Question Image:</label>
+            <input type="file" name="question_img" accept="image/*">
+        </div>
+        
+        <h3>Answers (4 jawaban wajib)</h3>
+        
+        <div>
+            <h4>Answer 1</h4>
+            <select name="answers[0][type]" required>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+            </select>
+            <input type="text" name="answers[0][answer_text]" placeholder="Jawaban 1">
+            <input type="file" name="answers[0][answer_img]" accept="image/*">
+            <label><input type="checkbox" name="answers[0][is_correct]" value="1"> Jawaban Benar</label>
+        </div>
+        
+        <div>
+            <h4>Answer 2</h4>
+            <select name="answers[1][type]" required>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+            </select>
+            <input type="text" name="answers[1][answer_text]" placeholder="Jawaban 2">
+            <input type="file" name="answers[1][answer_img]" accept="image/*">
+            <label><input type="checkbox" name="answers[1][is_correct]" value="1"> Jawaban Benar</label>
+        </div>
+        
+        <div>
+            <h4>Answer 3</h4>
+            <select name="answers[2][type]" required>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+            </select>
+            <input type="text" name="answers[2][answer_text]" placeholder="Jawaban 3">
+            <input type="file" name="answers[2][answer_img]" accept="image/*">
+            <label><input type="checkbox" name="answers[2][is_correct]" value="1"> Jawaban Benar</label>
+        </div>
+        
+        <div>
+            <h4>Answer 4</h4>
+            <select name="answers[3][type]" required>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+            </select>
+            <input type="text" name="answers[3][answer_text]" placeholder="Jawaban 4">
+            <input type="file" name="answers[3][answer_img]" accept="image/*">
+            <label><input type="checkbox" name="answers[3][is_correct]" value="1"> Jawaban Benar</label>
+        </div>
+        
+        <button type="submit">Submit Question</button>
+    </form>
+
+    <script>
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/api/exam/questions', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': 'Bearer YOUR_TOKEN_HERE'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                alert('Question berhasil dibuat!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>

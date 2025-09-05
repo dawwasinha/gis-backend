@@ -285,12 +285,12 @@
                 "tags": [
                     "Question"
                 ],
-                "summary": "Buat soal baru beserta 4 jawaban",
+                "summary": "Buat soal baru beserta 4 jawaban dengan upload file gambar",
                 "operationId": "eb4b4ac219a9991ba3cfdf874fe2820f",
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "level",
@@ -317,39 +317,87 @@
                                         "nullable": true
                                     },
                                     "question_img": {
+                                        "description": "Upload file gambar soal",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[0][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[0][answer_text]": {
                                         "type": "string",
                                         "nullable": true
                                     },
-                                    "answers": {
-                                        "type": "array",
-                                        "items": {
-                                            "required": [
-                                                "type"
-                                            ],
-                                            "properties": {
-                                                "type": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "text",
-                                                        "image"
-                                                    ]
-                                                },
-                                                "answer_text": {
-                                                    "type": "string",
-                                                    "nullable": true
-                                                },
-                                                "answer_img": {
-                                                    "type": "string",
-                                                    "nullable": true
-                                                },
-                                                "is_correct": {
-                                                    "type": "boolean"
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "maxItems": 4,
-                                        "minItems": 4
+                                    "answers[0][answer_img]": {
+                                        "description": "Upload file gambar jawaban",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[0][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[1][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[1][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[1][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[1][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[2][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[2][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[2][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[2][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[3][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[3][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[3][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[3][is_correct]": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "type": "object"
@@ -409,7 +457,7 @@
                 "tags": [
                     "Question"
                 ],
-                "summary": "Perbarui soal dan jawabannya",
+                "summary": "Perbarui soal dan jawabannya dengan upload file gambar",
                 "operationId": "d6bd32bedabb75d8f79e7833178c84ef",
                 "parameters": [
                     {
@@ -426,7 +474,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "level",
@@ -456,45 +504,86 @@
                                         "nullable": true
                                     },
                                     "question_img": {
+                                        "description": "Upload file gambar soal",
                                         "type": "string",
-                                        "example": "http://example.com/image.png",
+                                        "format": "binary",
                                         "nullable": true
                                     },
-                                    "answers": {
-                                        "type": "array",
-                                        "items": {
-                                            "required": [
-                                                "type",
-                                                "is_correct"
-                                            ],
-                                            "properties": {
-                                                "type": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "text",
-                                                        "image"
-                                                    ],
-                                                    "example": "text"
-                                                },
-                                                "answer_text": {
-                                                    "type": "string",
-                                                    "example": "Jakarta",
-                                                    "nullable": true
-                                                },
-                                                "answer_img": {
-                                                    "type": "string",
-                                                    "example": null,
-                                                    "nullable": true
-                                                },
-                                                "is_correct": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "maxItems": 4,
-                                        "minItems": 4
+                                    "answers[0][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[0][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[0][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[0][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[1][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[1][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[1][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[1][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[2][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[2][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[2][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[2][is_correct]": {
+                                        "type": "boolean"
+                                    },
+                                    "answers[3][type]": {
+                                        "type": "string",
+                                        "enum": [
+                                            "text",
+                                            "image"
+                                        ]
+                                    },
+                                    "answers[3][answer_text]": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "answers[3][answer_img]": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "answers[3][is_correct]": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "type": "object"
