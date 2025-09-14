@@ -200,25 +200,57 @@ class UserAnswerController extends Controller
      */
     public function result($user_id)
     {
-        $total = Question::count();
-        $userAnswers = UserAnswer::with('answer')
-            ->where('user_id', $user_id)
-            ->get();
+        // Get user to determine their level
+        $user = \App\Models\User::findOrFail($user_id);
+        
+        // Filter questions based on user level
+        if ($user->jenjang === 'sd') {
+            $total = Question::where('level', 'sd')->count();
+            $userAnswers = UserAnswer::with('answer')
+                ->whereHas('question', function ($query) {
+                    $query->where('level', 'sd');
+                })
+                ->where('user_id', $user_id)
+                ->get();
+        } elseif ($user->jenjang === 'smp') {
+            $total = Question::where('level', 'smp')->count();
+            $userAnswers = UserAnswer::with('answer')
+                ->whereHas('question', function ($query) {
+                    $query->where('level', 'smp');
+                })
+                ->where('user_id', $user_id)
+                ->get();
+        } else {
+            // Default: get all questions if level is not specified
+            $total = Question::count();
+            $userAnswers = UserAnswer::with('answer')
+                ->where('user_id', $user_id)
+                ->get();
+        }
 
         $answered = $userAnswers->count();
         $correct = $userAnswers->filter(function ($ua) {
             return $ua->answer && $ua->answer->is_correct;
         })->count();
+        
+        $marked = $userAnswers->filter(function ($ua) {
+            return $ua->is_doubtful;
+        })->count();
 
         $wrong = $answered - $correct;
         $unanswered = $total - $answered;
+        
+        // Calculate score: correct * 4, wrong * -1, unanswered * 0
+        $score = ($correct * 4) + ($wrong * -1) + ($unanswered * 0);
 
         return response()->json([
-            'total_questions' => $total,
+            'totalQuestions' => $total,
             'answered' => $answered,
             'correct' => $correct,
             'wrong' => $wrong,
-            'unanswered' => $unanswered
+            'unanswered' => $unanswered,
+            'marked' => $marked,
+            'score' => $score
         ]);
     }
 }
