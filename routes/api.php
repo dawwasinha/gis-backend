@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\KaryaController;
@@ -33,6 +34,9 @@ Route::middleware(['jwt'])->group(function () {
         Route::patch('/user-answers/{id}/toggle-doubt', [UserAnswerController::class, 'toggleDoubt']);
         Route::patch('/exam/user-answers/{id}/unset-doubt', [UserAnswerController::class, 'unsetDoubt']);
         Route::get('/results/{user_id}', [UserAnswerController::class, 'result']);
+        
+        // Submit hasil exam
+        Route::post('/submit', [ExamController::class, 'submit']);
     });
 
     // Route lainnya (dari kamu sebelumnya)

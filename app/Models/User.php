@@ -82,4 +82,9 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Karya::class); // Relasi ke model Karya
     }
 
+    public function examResults()
+    {
+        return $this->hasMany(ExamResult::class);
+    }
+
 }
