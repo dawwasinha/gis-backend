@@ -173,13 +173,9 @@ class ExamController extends Controller
                 ], 404);
             }
 
-            // Tambahkan skor dan detail jawaban
+            // Tambahkan skor dan statistik baru
             $examResult->score = $examResult->score;
-            $examResult->correct_answers = $examResult->userAnswers()
-                ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
-                ->where('answers.is_correct', true)
-                ->count();
-            $examResult->total_questions = $examResult->userAnswers()->count();
+            $examResult->score_statistics = $examResult->score_statistics;
             $examResult->answer_details = $examResult->answer_details;
 
             return response()->json([
@@ -356,12 +352,30 @@ class ExamController extends Controller
             $autoSubmitCount = ExamResult::where('is_auto_submit', true)->count();
             $manualSubmitCount = ExamResult::where('is_auto_submit', false)->count();
 
+            // Hitung statistik skor
+            $examResults = ExamResult::with(['userAnswers.answer'])->get();
+            $scores = $examResults->map(function ($exam) {
+                return $exam->score;
+            });
+            
+            $averageScore = $scores->avg();
+            $highestScore = $scores->max();
+            $lowestScore = $scores->min();
+
             // Exam results per day (last 7 days)
             $recentStats = ExamResult::selectRaw('DATE(submitted_at) as date, COUNT(*) as count')
                 ->where('submitted_at', '>=', now()->subDays(7))
                 ->groupBy('date')
                 ->orderBy('date', 'desc')
                 ->get();
+
+            // Distribusi skor
+            $scoreRanges = [
+                'excellent' => $scores->filter(fn($score) => $score >= 80)->count(), // 80+ poin
+                'good' => $scores->filter(fn($score) => $score >= 60 && $score < 80)->count(), // 60-79 poin
+                'fair' => $scores->filter(fn($score) => $score >= 40 && $score < 60)->count(), // 40-59 poin
+                'poor' => $scores->filter(fn($score) => $score < 40)->count() // < 40 poin
+            ];
 
             return response()->json([
                 'success' => true,
@@ -373,6 +387,12 @@ class ExamController extends Controller
                     'total_violations' => $totalViolations,
                     'auto_submit_count' => $autoSubmitCount,
                     'manual_submit_count' => $manualSubmitCount,
+                    'score_statistics' => [
+                        'average_score' => round($averageScore, 2),
+                        'highest_score' => $highestScore,
+                        'lowest_score' => $lowestScore,
+                        'score_distribution' => $scoreRanges
+                    ],
                     'recent_activity' => $recentStats
                 ]
             ], 200);

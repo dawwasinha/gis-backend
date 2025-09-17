@@ -42,22 +42,29 @@ class ExamResult extends Model
     }
 
     /**
-     * Hitung skor berdasarkan jawaban yang benar
+     * Hitung skor berdasarkan jawaban dengan sistem poin
+     * Benar: +4, Salah: -1, Kosong: 0
      */
     public function getScoreAttribute()
     {
-        $correctAnswers = $this->userAnswers()
-            ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
-            ->where('answers.is_correct', true)
-            ->count();
-
-        $totalQuestions = $this->userAnswers()->count();
-
-        if ($totalQuestions == 0) {
-            return 0;
+        $totalScore = 0;
+        
+        $userAnswers = $this->userAnswers()->with(['question', 'answer'])->get();
+        
+        foreach ($userAnswers as $userAnswer) {
+            if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                // Tidak dijawab = 0 poin
+                $totalScore += 0;
+            } elseif ($userAnswer->answer->is_correct) {
+                // Jawaban benar = +4 poin
+                $totalScore += 4;
+            } else {
+                // Jawaban salah = -1 poin
+                $totalScore -= 1;
+            }
         }
-
-        return round(($correctAnswers / $totalQuestions) * 100, 2);
+        
+        return $totalScore;
     }
 
     /**
@@ -69,13 +76,63 @@ class ExamResult extends Model
             ->with(['question', 'answer'])
             ->get()
             ->map(function ($userAnswer) {
+                $score = 0;
+                $status = 'tidak_dijawab';
+                
+                if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                    $score = 0;
+                    $status = 'tidak_dijawab';
+                } elseif ($userAnswer->answer->is_correct) {
+                    $score = 4;
+                    $status = 'benar';
+                } else {
+                    $score = -1;
+                    $status = 'salah';
+                }
+                
                 return [
                     'question_id' => $userAnswer->question_id,
                     'question_text' => $userAnswer->question->question_text,
-                    'selected_answer' => $userAnswer->answer->answer_text,
-                    'is_correct' => $userAnswer->answer->is_correct,
-                    'is_doubtful' => $userAnswer->is_doubtful
+                    'selected_answer' => $userAnswer->answer ? $userAnswer->answer->answer_text : null,
+                    'is_correct' => $userAnswer->answer ? $userAnswer->answer->is_correct : false,
+                    'is_doubtful' => $userAnswer->is_doubtful,
+                    'score' => $score,
+                    'status' => $status
                 ];
             });
+    }
+
+    /**
+     * Get statistik jawaban
+     */
+    public function getScoreStatisticsAttribute()
+    {
+        $userAnswers = $this->userAnswers()->with(['answer'])->get();
+        
+        $correct = 0;
+        $incorrect = 0;
+        $unanswered = 0;
+        
+        foreach ($userAnswers as $userAnswer) {
+            if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                $unanswered++;
+            } elseif ($userAnswer->answer->is_correct) {
+                $correct++;
+            } else {
+                $incorrect++;
+            }
+        }
+        
+        $totalQuestions = $userAnswers->count();
+        $totalScore = $this->score;
+        
+        return [
+            'total_questions' => $totalQuestions,
+            'correct_answers' => $correct,
+            'incorrect_answers' => $incorrect,
+            'unanswered' => $unanswered,
+            'total_score' => $totalScore,
+            'percentage' => $totalQuestions > 0 ? round(($correct / $totalQuestions) * 100, 2) : 0
+        ];
     }
 }
