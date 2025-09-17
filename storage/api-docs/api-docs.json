@@ -724,6 +724,125 @@
                 ]
             }
         },
+        "/api/exam/exam-results/{id}/answers": {
+            "get": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Get detailed answers for specific exam result",
+                "description": "Mengambil detail jawaban dari exam result tertentu",
+                "operationId": "getExamAnswers",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID exam result",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detail jawaban berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Detail jawaban berhasil diambil"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "exam_result": {
+                                                    "$ref": "#/components/schemas/ExamResult"
+                                                },
+                                                "score": {
+                                                    "type": "number",
+                                                    "example": 85.5
+                                                },
+                                                "correct_answers": {
+                                                    "type": "integer",
+                                                    "example": 17
+                                                },
+                                                "total_questions": {
+                                                    "type": "integer",
+                                                    "example": 20
+                                                },
+                                                "answer_details": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "question_id": {
+                                                                "type": "string",
+                                                                "example": "uuid-1234"
+                                                            },
+                                                            "question_text": {
+                                                                "type": "string",
+                                                                "example": "Apa ibu kota Indonesia?"
+                                                            },
+                                                            "selected_answer": {
+                                                                "type": "string",
+                                                                "example": "Jakarta"
+                                                            },
+                                                            "is_correct": {
+                                                                "type": "boolean",
+                                                                "example": true
+                                                            },
+                                                            "is_doubtful": {
+                                                                "type": "boolean",
+                                                                "example": false
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Exam result tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Exam result tidak ditemukan"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/exam/questions": {
             "get": {
                 "tags": [
@@ -1374,6 +1493,22 @@
                         "type": "string",
                         "format": "date-time",
                         "example": "2025-09-17T10:44:05.000000Z"
+                    },
+                    "score": {
+                        "description": "Skor exam dalam persen",
+                        "type": "number",
+                        "format": "float",
+                        "example": 85.5
+                    },
+                    "correct_answers": {
+                        "description": "Jumlah jawaban benar",
+                        "type": "integer",
+                        "example": 17
+                    },
+                    "total_questions": {
+                        "description": "Total jumlah soal",
+                        "type": "integer",
+                        "example": 20
                     },
                     "user": {
                         "properties": {

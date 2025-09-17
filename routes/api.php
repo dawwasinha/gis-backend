@@ -38,6 +38,7 @@ Route::middleware(['jwt'])->group(function () {
         // Exam Results Management
         Route::get('/exam-results', [ExamController::class, 'index']);
         Route::get('/exam-results/{id}', [ExamController::class, 'show']);
+        Route::get('/exam-results/{id}/answers', [ExamController::class, 'getAnswers']);
         Route::get('/exam-results/user/{userId}', [ExamController::class, 'getByUser']);
         Route::get('/exam-results/statistics/overview', [ExamController::class, 'statistics']);
         

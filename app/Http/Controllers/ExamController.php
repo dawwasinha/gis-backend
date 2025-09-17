@@ -83,6 +83,17 @@ class ExamController extends Controller
 
             $examResults = $query->paginate($perPage);
 
+            // Tambahkan skor ke setiap exam result
+            $examResults->getCollection()->transform(function ($examResult) {
+                $examResult->score = $examResult->score;
+                $examResult->correct_answers = $examResult->userAnswers()
+                    ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
+                    ->where('answers.is_correct', true)
+                    ->count();
+                $examResult->total_questions = $examResult->userAnswers()->count();
+                return $examResult;
+            });
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data exam results berhasil diambil',
@@ -161,6 +172,15 @@ class ExamController extends Controller
                     'data' => null
                 ], 404);
             }
+
+            // Tambahkan skor dan detail jawaban
+            $examResult->score = $examResult->score;
+            $examResult->correct_answers = $examResult->userAnswers()
+                ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
+                ->where('answers.is_correct', true)
+                ->count();
+            $examResult->total_questions = $examResult->userAnswers()->count();
+            $examResult->answer_details = $examResult->answer_details;
 
             return response()->json([
                 'success' => true,
@@ -259,6 +279,17 @@ class ExamController extends Controller
                 ->with('user:id,name,email,jenjang')
                 ->orderBy('submitted_at', $sortOrder)
                 ->paginate($perPage);
+
+            // Tambahkan skor ke setiap exam result
+            $examResults->getCollection()->transform(function ($examResult) {
+                $examResult->score = $examResult->score;
+                $examResult->correct_answers = $examResult->userAnswers()
+                    ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
+                    ->where('answers.is_correct', true)
+                    ->count();
+                $examResult->total_questions = $examResult->userAnswers()->count();
+                return $examResult;
+            });
 
             return response()->json([
                 'success' => true,
@@ -436,6 +467,97 @@ class ExamController extends Controller
                     'submitted_at' => $examResult->submitted_at
                 ]
             ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server',
+                'error' => app()->isLocal() ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/exam/exam-results/{id}/answers",
+     *     summary="Get detailed answers for specific exam result",
+     *     description="Mengambil detail jawaban dari exam result tertentu",
+     *     operationId="getExamAnswers",
+     *     tags={"Exam Results"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID exam result",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Detail jawaban berhasil diambil",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Detail jawaban berhasil diambil"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="exam_result", ref="#/components/schemas/ExamResult"),
+     *                 @OA\Property(property="score", type="number", example=85.5),
+     *                 @OA\Property(property="correct_answers", type="integer", example=17),
+     *                 @OA\Property(property="total_questions", type="integer", example=20),
+     *                 @OA\Property(property="answer_details", type="array",
+     *                     @OA\Items(type="object",
+     *                         @OA\Property(property="question_id", type="string", example="uuid-1234"),
+     *                         @OA\Property(property="question_text", type="string", example="Apa ibu kota Indonesia?"),
+     *                         @OA\Property(property="selected_answer", type="string", example="Jakarta"),
+     *                         @OA\Property(property="is_correct", type="boolean", example=true),
+     *                         @OA\Property(property="is_doubtful", type="boolean", example=false)
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Exam result tidak ditemukan",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Exam result tidak ditemukan"),
+     *             @OA\Property(property="data", type="null")
+     *         )
+     *     )
+     * )
+     */
+    public function getAnswers(int $id): JsonResponse
+    {
+        try {
+            $examResult = ExamResult::with('user:id,name,email,jenjang')->find($id);
+
+            if (!$examResult) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Exam result tidak ditemukan',
+                    'data' => null
+                ], 404);
+            }
+
+            $score = $examResult->score;
+            $correctAnswers = $examResult->userAnswers()
+                ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
+                ->where('answers.is_correct', true)
+                ->count();
+            $totalQuestions = $examResult->userAnswers()->count();
+            $answerDetails = $examResult->answer_details;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail jawaban berhasil diambil',
+                'data' => [
+                    'exam_result' => $examResult,
+                    'score' => $score,
+                    'correct_answers' => $correctAnswers,
+                    'total_questions' => $totalQuestions,
+                    'answer_details' => $answerDetails
+                ]
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
