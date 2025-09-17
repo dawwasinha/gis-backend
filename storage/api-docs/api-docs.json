@@ -1371,6 +1371,10 @@
                             "email": {
                                 "type": "string",
                                 "example": "john@example.com"
+                            },
+                            "jenjang": {
+                                "type": "string",
+                                "example": "SMP"
                             }
                         },
                         "type": "object"
@@ -1395,6 +1399,11 @@
                         "type": "string",
                         "format": "email",
                         "example": "john@example.com"
+                    },
+                    "jenjang": {
+                        "description": "Jenjang pendidikan user",
+                        "type": "string",
+                        "example": "SMP"
                     }
                 },
                 "type": "object"

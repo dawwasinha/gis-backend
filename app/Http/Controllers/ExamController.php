@@ -63,7 +63,7 @@ class ExamController extends Controller
             $sortBy = $request->get('sort_by', 'submitted_at');
             $sortOrder = $request->get('sort_order', 'desc');
 
-            $examResults = ExamResult::with('user:id,name,email')
+            $examResults = ExamResult::with('user:id,name,email,jenjang')
                 ->orderBy($sortBy, $sortOrder)
                 ->paginate($perPage);
 
@@ -133,7 +133,7 @@ class ExamController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $examResult = ExamResult::with('user:id,name,email')->find($id);
+            $examResult = ExamResult::with('user:id,name,email,jenjang')->find($id);
 
             if (!$examResult) {
                 return response()->json([
@@ -237,7 +237,7 @@ class ExamController extends Controller
             $sortOrder = $request->get('sort_order', 'desc');
 
             $examResults = ExamResult::where('user_id', $userId)
-                ->with('user:id,name,email')
+                ->with('user:id,name,email,jenjang')
                 ->orderBy('submitted_at', $sortOrder)
                 ->paginate($perPage);
 
@@ -248,7 +248,8 @@ class ExamController extends Controller
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->name,
-                        'email' => $user->email
+                        'email' => $user->email,
+                        'jenjang' => $user->jenjang
                     ],
                     'exam_results' => $examResults->items(),
                     'pagination' => [
@@ -402,7 +403,7 @@ class ExamController extends Controller
             ]);
 
             // Load relasi user untuk response
-            $examResult->load('user:id,name,email');
+            $examResult->load('user:id,name,email,jenjang');
 
             return response()->json([
                 'success' => true,

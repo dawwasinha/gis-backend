@@ -17,7 +17,8 @@ namespace App\Swagger\Schemas;
  *     @OA\Property(property="user", type="object",
  *         @OA\Property(property="id", type="integer", example=123),
  *         @OA\Property(property="name", type="string", example="John Doe"),
- *         @OA\Property(property="email", type="string", example="john@example.com")
+ *         @OA\Property(property="email", type="string", example="john@example.com"),
+ *         @OA\Property(property="jenjang", type="string", example="SMP")
  *     )
  * )
  *
@@ -26,7 +27,8 @@ namespace App\Swagger\Schemas;
  *     type="object",
  *     @OA\Property(property="id", type="integer", example=123, description="ID user"),
  *     @OA\Property(property="name", type="string", example="John Doe", description="Nama user"),
- *     @OA\Property(property="email", type="string", format="email", example="john@example.com", description="Email user")
+ *     @OA\Property(property="email", type="string", format="email", example="john@example.com", description="Email user"),
+ *     @OA\Property(property="jenjang", type="string", example="SMP", description="Jenjang pendidikan user")
  * )
  *
  * @OA\Schema(
