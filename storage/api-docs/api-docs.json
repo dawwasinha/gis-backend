@@ -297,6 +297,23 @@
                                 "desc"
                             ]
                         }
+                    },
+                    {
+                        "name": "level",
+                        "in": "query",
+                        "description": "Filter berdasarkan jenjang pendidikan",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "SD",
+                                "SMP",
+                                "SMA",
+                                "sd",
+                                "smp",
+                                "sma"
+                            ]
+                        }
                     }
                 ],
                 "responses": {

@@ -39,6 +39,13 @@ class ExamController extends Controller
      *         required=false,
      *         @OA\Schema(type="string", default="desc", enum={"asc", "desc"})
      *     ),
+     *     @OA\Parameter(
+     *         name="level",
+     *         in="query",
+     *         description="Filter berdasarkan jenjang pendidikan",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"SD", "SMP", "SMA", "sd", "smp", "sma"})
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Data exam results berhasil diambil",
@@ -62,10 +69,19 @@ class ExamController extends Controller
             $perPage = $request->get('per_page', 15);
             $sortBy = $request->get('sort_by', 'submitted_at');
             $sortOrder = $request->get('sort_order', 'desc');
+            $level = $request->get('level');
 
-            $examResults = ExamResult::with('user:id,name,email,jenjang')
-                ->orderBy($sortBy, $sortOrder)
-                ->paginate($perPage);
+            $query = ExamResult::with('user:id,name,email,jenjang')
+                ->orderBy($sortBy, $sortOrder);
+
+            // Filter berdasarkan level/jenjang jika parameter diberikan
+            if ($level) {
+                $query->whereHas('user', function ($q) use ($level) {
+                    $q->where('jenjang', 'LIKE', strtoupper($level));
+                });
+            }
+
+            $examResults = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
@@ -78,6 +94,9 @@ class ExamController extends Controller
                     'last_page' => $examResults->lastPage(),
                     'from' => $examResults->firstItem(),
                     'to' => $examResults->lastItem()
+                ],
+                'filters' => [
+                    'level' => $level
                 ]
             ], 200);
 
