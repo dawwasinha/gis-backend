@@ -35,6 +35,12 @@ Route::middleware(['jwt'])->group(function () {
         Route::patch('/exam/user-answers/{id}/unset-doubt', [UserAnswerController::class, 'unsetDoubt']);
         Route::get('/results/{user_id}', [UserAnswerController::class, 'result']);
         
+        // Exam Results Management
+        Route::get('/exam-results', [ExamController::class, 'index']);
+        Route::get('/exam-results/{id}', [ExamController::class, 'show']);
+        Route::get('/exam-results/user/{userId}', [ExamController::class, 'getByUser']);
+        Route::get('/exam-results/statistics/overview', [ExamController::class, 'statistics']);
+        
         // Submit hasil exam
         Route::post('/submit', [ExamController::class, 'submit']);
     });

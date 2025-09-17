@@ -248,6 +248,465 @@
                 ]
             }
         },
+        "/api/exam/exam-results": {
+            "get": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Get all exam results",
+                "description": "Mengambil semua hasil exam dengan pagination",
+                "operationId": "getExamResults",
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field untuk sorting",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "submitted_at",
+                            "enum": [
+                                "submitted_at",
+                                "duration_in_minutes",
+                                "total_violations"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Urutan sorting",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Data exam results berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data exam results berhasil diambil"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ExamResult"
+                                            }
+                                        },
+                                        "pagination": {
+                                            "$ref": "#/components/schemas/Pagination"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/exam-results/{id}": {
+            "get": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Get exam result by ID",
+                "description": "Mengambil detail exam result berdasarkan ID",
+                "operationId": "getExamResult",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID exam result",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Data exam result berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data exam result berhasil diambil"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ExamResult"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Exam result tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Exam result tidak ditemukan"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/exam-results/user/{userId}": {
+            "get": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Get exam results by user ID",
+                "description": "Mengambil semua exam results untuk user tertentu",
+                "operationId": "getExamResultsByUser",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "ID user",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "sort_order",
+                        "in": "query",
+                        "description": "Urutan sorting",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Data exam results untuk user berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data exam results untuk user berhasil diambil"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 123
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "John Doe"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "john@example.com"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "exam_results": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/ExamResult"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "$ref": "#/components/schemas/Pagination"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User tidak ditemukan"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/exam-results/statistics/overview": {
+            "get": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Get exam statistics",
+                "description": "Mengambil statistik keseluruhan exam",
+                "operationId": "getExamStatistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistik exam berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Statistik exam berhasil diambil"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ExamStatistics"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/exam/submit": {
+            "post": {
+                "tags": [
+                    "Exam Results"
+                ],
+                "summary": "Submit exam result",
+                "description": "Submit hasil pengerjaan exam CBT",
+                "operationId": "submitExam",
+                "requestBody": {
+                    "description": "Data exam result yang akan disubmit",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExamSubmitRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Hasil exam berhasil disimpan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Hasil exam berhasil disimpan"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ExamResult"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error atau duplicate submission",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User sudah melakukan submit exam hari ini"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        },
+                                        "errors": {
+                                            "description": "Detail validation errors (jika ada)",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/exam/questions": {
             "get": {
                 "tags": [
@@ -856,6 +1315,249 @@
     },
     "components": {
         "schemas": {
+            "ExamResult": {
+                "properties": {
+                    "id": {
+                        "description": "ID exam result",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "description": "ID user",
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "duration_in_minutes": {
+                        "description": "Durasi pengerjaan dalam menit",
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "total_violations": {
+                        "description": "Total pelanggaran",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "is_auto_submit": {
+                        "description": "Status auto submit",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "submitted_at": {
+                        "description": "Waktu submit",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-17T10:44:05.000000Z"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-17T10:44:05.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-17T10:44:05.000000Z"
+                    },
+                    "user": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 123
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "John Doe"
+                            },
+                            "email": {
+                                "type": "string",
+                                "example": "john@example.com"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "User": {
+                "properties": {
+                    "id": {
+                        "description": "ID user",
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "name": {
+                        "description": "Nama user",
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "description": "Email user",
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    }
+                },
+                "type": "object"
+            },
+            "ExamStatistics": {
+                "properties": {
+                    "total_exams": {
+                        "description": "Total exam yang telah dikerjakan",
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "total_users": {
+                        "description": "Total user yang telah mengerjakan exam",
+                        "type": "integer",
+                        "example": 75
+                    },
+                    "average_duration_minutes": {
+                        "description": "Rata-rata durasi pengerjaan",
+                        "type": "number",
+                        "format": "float",
+                        "example": 42.5
+                    },
+                    "total_violations": {
+                        "description": "Total pelanggaran keseluruhan",
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "auto_submit_count": {
+                        "description": "Jumlah auto submit",
+                        "type": "integer",
+                        "example": 30
+                    },
+                    "manual_submit_count": {
+                        "description": "Jumlah manual submit",
+                        "type": "integer",
+                        "example": 120
+                    },
+                    "recent_activity": {
+                        "description": "Aktivitas terkini",
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "date": {
+                                    "type": "string",
+                                    "format": "date",
+                                    "example": "2025-09-17"
+                                },
+                                "count": {
+                                    "type": "integer",
+                                    "example": 15
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Pagination": {
+                "properties": {
+                    "current_page": {
+                        "description": "Halaman saat ini",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "description": "Jumlah item per halaman",
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "description": "Total item",
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "last_page": {
+                        "description": "Halaman terakhir",
+                        "type": "integer",
+                        "example": 4
+                    },
+                    "from": {
+                        "description": "Item pertama pada halaman ini",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "to": {
+                        "description": "Item terakhir pada halaman ini",
+                        "type": "integer",
+                        "example": 15
+                    }
+                },
+                "type": "object"
+            },
+            "ApiResponse": {
+                "properties": {
+                    "success": {
+                        "description": "Status keberhasilan",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "description": "Pesan response",
+                        "type": "string",
+                        "example": "Data berhasil diambil"
+                    },
+                    "data": {
+                        "description": "Data response"
+                    }
+                },
+                "type": "object"
+            },
+            "ApiErrorResponse": {
+                "properties": {
+                    "success": {
+                        "description": "Status keberhasilan",
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "description": "Pesan error",
+                        "type": "string",
+                        "example": "Terjadi kesalahan"
+                    },
+                    "errors": {
+                        "description": "Detail error (jika ada)",
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ExamSubmitRequest": {
+                "required": [
+                    "userId",
+                    "durationInMinutes",
+                    "totalViolations",
+                    "isAutoSubmit"
+                ],
+                "properties": {
+                    "userId": {
+                        "description": "ID user yang mengerjakan exam",
+                        "type": "string",
+                        "example": "123"
+                    },
+                    "durationInMinutes": {
+                        "description": "Durasi pengerjaan dalam menit",
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 45
+                    },
+                    "totalViolations": {
+                        "description": "Total pelanggaran yang terdeteksi",
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 2
+                    },
+                    "isAutoSubmit": {
+                        "description": "Apakah submit otomatis karena waktu habis",
+                        "type": "boolean",
+                        "example": false
+                    }
+                },
+                "type": "object"
+            },
             "UserRequest": {
                 "required": [
                     "name",
@@ -915,6 +1617,10 @@
         {
             "name": "UserAnswer",
             "description": "Manajemen jawaban user untuk soal ujian"
+        },
+        {
+            "name": "Exam Results",
+            "description": "Exam Results"
         }
     ]
 }

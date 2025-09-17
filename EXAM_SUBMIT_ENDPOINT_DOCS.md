@@ -1,27 +1,28 @@
-# Endpoint Exam Submit - Dokumentasi
+# Endpoint Exam Submit & Retrieve - Dokumentasi
 
 ## Overview
-Endpoint untuk menerima hasil submit pengerjaan CBT (Computer Based Test) yang telah berhasil dibuat dan diimplementasikan.
+Endpoint lengkap untuk mengelola hasil pengerjaan CBT (Computer Based Test), termasuk submit dan mengambil data exam results.
 
 ## Endpoint Details
 
-### URL
+### 1. Submit Exam Result
+
+#### URL
 ```
 POST /api/exam/submit
 ```
 
-### Middleware
+#### Middleware
 - `jwt` - Requires JWT authentication
-- Located inside `Route::middleware(['jwt'])` group
 
-### Request Headers
+#### Request Headers
 ```
 Content-Type: application/json
 Accept: application/json
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-### Request Body
+#### Request Body
 ```json
 {
   "userId": "123",
@@ -30,14 +31,6 @@ Authorization: Bearer <JWT_TOKEN>
   "isAutoSubmit": false
 }
 ```
-
-### Request Validation Rules
-- `userId`: required, must exist in users table
-- `durationInMinutes`: required, integer, minimum 0
-- `totalViolations`: required, integer, minimum 0
-- `isAutoSubmit`: required, boolean
-
-### Responses
 
 #### Success Response (201 Created)
 ```json
@@ -59,33 +52,184 @@ Authorization: Bearer <JWT_TOKEN>
 }
 ```
 
-#### Validation Error (422 Unprocessable Entity)
+### 2. Get All Exam Results
+
+#### URL
+```
+GET /api/exam/exam-results
+```
+
+#### Query Parameters
+- `per_page` (optional): Number of items per page (default: 15)
+- `sort_by` (optional): Field to sort by (default: submitted_at)
+- `sort_order` (optional): asc or desc (default: desc)
+
+#### Example Request
+```
+GET /api/exam/exam-results?per_page=10&sort_by=duration_in_minutes&sort_order=asc
+```
+
+#### Success Response (200 OK)
 ```json
 {
-  "success": false,
-  "message": "Validation error",
-  "errors": {
-    "userId": ["User ID harus diisi"],
-    "durationInMinutes": ["Durasi pengerjaan harus diisi"]
+  "success": true,
+  "message": "Data exam results berhasil diambil",
+  "data": [
+    {
+      "id": 1,
+      "user_id": 123,
+      "duration_in_minutes": 45,
+      "total_violations": 2,
+      "is_auto_submit": false,
+      "submitted_at": "2025-09-17T10:44:05.000000Z",
+      "created_at": "2025-09-17T10:44:05.000000Z",
+      "updated_at": "2025-09-17T10:44:05.000000Z",
+      "user": {
+        "id": 123,
+        "name": "John Doe",
+        "email": "john@example.com"
+      }
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 50,
+    "last_page": 4,
+    "from": 1,
+    "to": 15
   }
 }
 ```
 
-#### Duplicate Submission Error (422 Unprocessable Entity)
+### 3. Get Exam Result by ID
+
+#### URL
+```
+GET /api/exam/exam-results/{id}
+```
+
+#### Example Request
+```
+GET /api/exam/exam-results/1
+```
+
+#### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Data exam result berhasil diambil",
+  "data": {
+    "id": 1,
+    "user_id": 123,
+    "duration_in_minutes": 45,
+    "total_violations": 2,
+    "is_auto_submit": false,
+    "submitted_at": "2025-09-17T10:44:05.000000Z",
+    "created_at": "2025-09-17T10:44:05.000000Z",
+    "updated_at": "2025-09-17T10:44:05.000000Z",
+    "user": {
+      "id": 123,
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  }
+}
+```
+
+#### Not Found Response (404)
 ```json
 {
   "success": false,
-  "message": "User sudah melakukan submit exam hari ini",
+  "message": "Exam result tidak ditemukan",
   "data": null
 }
 ```
 
-#### Server Error (500 Internal Server Error)
+### 4. Get Exam Results by User ID
+
+#### URL
+```
+GET /api/exam/exam-results/user/{userId}
+```
+
+#### Query Parameters
+- `per_page` (optional): Number of items per page (default: 15)
+- `sort_order` (optional): asc or desc (default: desc)
+
+#### Example Request
+```
+GET /api/exam/exam-results/user/123?per_page=10&sort_order=asc
+```
+
+#### Success Response (200 OK)
 ```json
 {
-  "success": false,
-  "message": "Terjadi kesalahan server",
-  "error": "Error details (only in local environment)"
+  "success": true,
+  "message": "Data exam results untuk user berhasil diambil",
+  "data": {
+    "user": {
+      "id": 123,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "exam_results": [
+      {
+        "id": 1,
+        "user_id": 123,
+        "duration_in_minutes": 45,
+        "total_violations": 2,
+        "is_auto_submit": false,
+        "submitted_at": "2025-09-17T10:44:05.000000Z",
+        "user": {
+          "id": 123,
+          "name": "John Doe",
+          "email": "john@example.com"
+        }
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "per_page": 15,
+      "total": 5,
+      "last_page": 1,
+      "from": 1,
+      "to": 5
+    }
+  }
+}
+```
+
+### 5. Get Exam Statistics
+
+#### URL
+```
+GET /api/exam/exam-results/statistics/overview
+```
+
+#### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Statistik exam berhasil diambil",
+  "data": {
+    "total_exams": 150,
+    "total_users": 75,
+    "average_duration_minutes": 42.5,
+    "total_violations": 25,
+    "auto_submit_count": 30,
+    "manual_submit_count": 120,
+    "recent_activity": [
+      {
+        "date": "2025-09-17",
+        "count": 15
+      },
+      {
+        "date": "2025-09-16",
+        "count": 22
+      }
+    ]
+  }
 }
 ```
 
@@ -204,10 +348,51 @@ php artisan route:list --path=api/exam
 ## Notes
 
 - All exam submissions are stored permanently for audit purposes
-- The endpoint requires JWT authentication
+- All endpoints require JWT authentication
 - Duplicate submissions on the same day are prevented
 - Foreign key constraints ensure data integrity
 - Indexes are optimized for user-based queries by date
+- All GET endpoints include user information via relationship loading
+
+## Available Endpoints Summary
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/exam/submit` | Submit exam result |
+| GET | `/api/exam/exam-results` | Get all exam results with pagination |
+| GET | `/api/exam/exam-results/{id}` | Get specific exam result by ID |
+| GET | `/api/exam/exam-results/user/{userId}` | Get exam results by user ID |
+| GET | `/api/exam/exam-results/statistics/overview` | Get exam statistics |
+
+## Usage Examples
+
+### Get All Exam Results
+```bash
+curl -X GET "http://your-domain.com/api/exam/exam-results?per_page=10&sort_by=submitted_at&sort_order=desc" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Get Exam Result by ID
+```bash
+curl -X GET "http://your-domain.com/api/exam/exam-results/1" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Get User's Exam Results
+```bash
+curl -X GET "http://your-domain.com/api/exam/exam-results/user/123" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Get Exam Statistics
+```bash
+curl -X GET "http://your-domain.com/api/exam/exam-results/statistics/overview" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
 
 ---
 
