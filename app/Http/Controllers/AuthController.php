@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UserRequest;
 use App\Mail\ResetPasswordCodeMail;
 use App\Models\PasswordReset;
+use App\Models\UserStatus;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Services\UserService;
@@ -95,6 +96,23 @@ class AuthController extends Controller
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json(['error' => 'Invalid credentials'], 401);
             }
+
+            // Cek status user di user_statuses setelah berhasil login
+            $user = Auth::user();
+            $userStatus = UserStatus::where('user_id', $user->id)->first();
+
+            // Jika user status ada dan statusnya inactive, tolak login
+            if ($userStatus && $userStatus->status === 'inactive') {
+                // Invalidate token yang baru dibuat
+                JWTAuth::invalidate($token);
+                
+                return response()->json([
+                    'error' => 'Akun Anda sudah tidak aktif setelah menyelesaikan CBT. Silakan hubungi administrator.',
+                    'reason' => $userStatus->reason,
+                    'last_cbt_submission' => $userStatus->last_cbt_submission
+                ], 403);
+            }
+
         } catch (JWTException $e) {
             return response()->json(['error' => 'Could not create token'], 500);
         }
