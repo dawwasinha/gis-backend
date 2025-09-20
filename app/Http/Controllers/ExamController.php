@@ -30,7 +30,7 @@ class ExamController extends Controller
      *         in="query",
      *         description="Field untuk sorting",
      *         required=false,
-     *         @OA\Schema(type="string", default="submitted_at", enum={"submitted_at", "duration_in_minutes", "total_violations"})
+     *         @OA\Schema(type="string", default="score", enum={"score", "submitted_at", "duration_in_minutes", "total_violations"})
      *     ),
      *     @OA\Parameter(
      *         name="sort_order",
@@ -67,47 +67,229 @@ class ExamController extends Controller
     {
         try {
             $perPage = $request->get('per_page', 15);
-            $sortBy = $request->get('sort_by', 'submitted_at');
-            $sortOrder = $request->get('sort_order', 'desc');
+            $currentPage = $request->get('page', 1);
             $level = $request->get('level');
 
-            $query = ExamResult::with('user:id,name,email,jenjang')
-                ->orderBy($sortBy, $sortOrder);
+            // Ambil semua user dengan examResults
+            $query = User::with(['examResults'])
+                ->where('jenis_lomba', 'science-competition');
 
-            // Filter berdasarkan level/jenjang jika parameter diberikan
+            // Filter level kalau ada
             if ($level) {
-                $query->whereHas('user', function ($q) use ($level) {
-                    $q->where('jenjang', 'LIKE', strtoupper($level));
-                });
+                $query->where('jenjang', strtoupper($level));
             }
 
-            $examResults = $query->paginate($perPage);
+            $users = $query->get();
 
-            // Tambahkan skor ke setiap exam result
-            $examResults->getCollection()->transform(function ($examResult) {
-                $examResult->score = $examResult->score;
-                $examResult->correct_answers = $examResult->userAnswers()
-                    ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
-                    ->where('answers.is_correct', true)
-                    ->count();
-                $examResult->total_questions = $examResult->userAnswers()->count();
-                return $examResult;
-            });
+            $examResults = collect();
+
+            // Hitung skor
+            foreach ($users as $user) {
+                foreach ($user->examResults as $examResult) {
+                    $userAnswers = $examResult->userAnswers()->with(['answer'])->get();
+
+                    $totalScore = 0;
+                    $correctAnswers = 0;
+                    $incorrectAnswers = 0;
+                    $unansweredQuestions = 0;
+
+                    foreach ($userAnswers as $userAnswer) {
+                        if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                            $unansweredQuestions++;
+                        } elseif ($userAnswer->answer->is_correct) {
+                            $totalScore += 4;
+                            $correctAnswers++;
+                        } else {
+                            $totalScore -= 1;
+                            $incorrectAnswers++;
+                        }
+                    }
+
+                    $totalQuestions = $userAnswers->count();
+
+                    $resultData = (object) [
+                        'id' => $examResult->id,
+                        'user_id' => $user->id,
+                        'user' => (object) [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'jenjang' => $user->jenjang,
+                            'jenis_lomba' => $user->jenis_lomba,
+                            'asal_sekolah' => $user->asal_sekolah,
+                            'kelas' => $user->kelas
+                        ],
+                        'duration_in_minutes' => $examResult->duration_in_minutes,
+                        'total_violations' => $examResult->total_violations,
+                        'is_auto_submit' => $examResult->is_auto_submit,
+                        'submitted_at' => $examResult->submitted_at,
+                        'calculated_score' => $totalScore,
+                        'correct_answers' => $correctAnswers,
+                        'incorrect_answers' => $incorrectAnswers,
+                        'unanswered_questions' => $unansweredQuestions,
+                        'total_questions' => $totalQuestions,
+                        'percentage' => $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0,
+                        'jenjang' => $user->jenjang,
+                        'jenis_lomba' => $user->jenis_lomba
+                    ];
+
+                    $examResults->push($resultData);
+                }
+            }
+
+            // Urutkan berdasarkan skor tertinggi
+            $examResults = $examResults->sortByDesc('calculated_score')->values();
+
+            // Manual pagination
+            $total = $examResults->count();
+            $offset = ($currentPage - 1) * $perPage;
+            $itemsForCurrentPage = $examResults->slice($offset, $perPage)->values();
+            $lastPage = ceil($total / $perPage);
+            $from = $total > 0 ? $offset + 1 : null;
+            $to = $total > 0 ? min($offset + $perPage, $total) : null;
+
+            // Statistik per jenjang
+            $resultsByJenjang = $examResults->groupBy('jenjang');
+            $sdResults = $resultsByJenjang->get('SD', collect());
+            $smpResults = $resultsByJenjang->get('SMP', collect());
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data exam results berhasil diambil',
-                'data' => $examResults->items(),
+                'message' => 'Data exam results diurutkan berdasarkan skor tertinggi',
+                'data' => $itemsForCurrentPage,
+                'statistics' => [
+                    'total_participants' => $total,
+                    'sd_participants' => $sdResults->count(),
+                    'smp_participants' => $smpResults->count(),
+                    'highest_score_overall' => $examResults->first()->calculated_score ?? 0,
+                    'lowest_score_overall' => $examResults->last()->calculated_score ?? 0,
+                    'highest_score_sd' => $sdResults->max('calculated_score') ?? 0,
+                    'highest_score_smp' => $smpResults->max('calculated_score') ?? 0,
+                ],
                 'pagination' => [
-                    'current_page' => $examResults->currentPage(),
-                    'per_page' => $examResults->perPage(),
-                    'total' => $examResults->total(),
-                    'last_page' => $examResults->lastPage(),
-                    'from' => $examResults->firstItem(),
-                    'to' => $examResults->lastItem()
+                    'current_page' => $currentPage,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                    'from' => $from,
+                    'to' => $to
                 ],
                 'filters' => [
-                    'level' => $level
+                    'jenis_lomba' => 'science-competition',
+                    'level' => $level,
+                    'sorted_by' => 'highest_score_first'
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server',
+                'error' => app()->isLocal() ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/exam/exam-results/science-competition/by-jenjang",
+     *     summary="Get science competition results grouped by jenjang",
+     *     description="Mengambil hasil science competition yang dipisahkan berdasarkan jenjang SD dan SMP",
+     *     operationId="getScienceCompetitionByJenjang",
+     *     tags={"Exam Results"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Jumlah item per halaman untuk setiap jenjang",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10, minimum=1, maximum=50)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Data hasil science competition berdasarkan jenjang berhasil diambil",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Data hasil science competition berdasarkan jenjang berhasil diambil"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="sd_results", type="array", @OA\Items(ref="#/components/schemas/ExamResult")),
+     *                 @OA\Property(property="smp_results", type="array", @OA\Items(ref="#/components/schemas/ExamResult"))
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getScienceCompetitionByJenjang(Request $request): JsonResponse
+    {
+        try {
+            $perPage = $request->get('per_page', 10);
+
+            // Query untuk science competition saja
+            $query = ExamResult::with(['user:id,name,email,jenjang,jenis_lomba'])
+                ->whereHas('user', function ($q) {
+                    $q->where('jenis_lomba', 'science-competition');
+                });
+
+            $examResults = $query->get();
+
+            // Transform untuk menghitung skor
+            $examResults->transform(function ($examResult) {
+                $userAnswers = $examResult->userAnswers()->with(['answer', 'question'])->get();
+                
+                $totalScore = 0;
+                $correctAnswers = 0;
+                $incorrectAnswers = 0;
+                $unansweredQuestions = 0;
+                
+                foreach ($userAnswers as $userAnswer) {
+                    if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                        $totalScore += 0;
+                        $unansweredQuestions++;
+                    } elseif ($userAnswer->answer->is_correct) {
+                        $totalScore += 4;
+                        $correctAnswers++;
+                    } else {
+                        $totalScore -= 1;
+                        $incorrectAnswers++;
+                    }
+                }
+                
+                $totalQuestions = $userAnswers->count();
+                
+                $examResult->calculated_score = $totalScore;
+                $examResult->correct_answers = $correctAnswers;
+                $examResult->incorrect_answers = $incorrectAnswers;
+                $examResult->unanswered_questions = $unansweredQuestions;
+                $examResult->total_questions = $totalQuestions;
+                $examResult->percentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
+                
+                return $examResult;
+            });
+
+            // Pisahkan berdasarkan jenjang dan sort berdasarkan skor tertinggi
+            $sdResults = $examResults->filter(function ($result) {
+                return strtoupper($result->user->jenjang) === 'SD';
+            })->sortByDesc('calculated_score')->take($perPage)->values();
+
+            $smpResults = $examResults->filter(function ($result) {
+                return strtoupper($result->user->jenjang) === 'SMP';
+            })->sortByDesc('calculated_score')->take($perPage)->values();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data hasil science competition berdasarkan jenjang berhasil diambil',
+                'data' => [
+                    'sd_results' => $sdResults,
+                    'smp_results' => $smpResults
+                ],
+                'statistics' => [
+                    'total_sd_participants' => $examResults->filter(fn($r) => strtoupper($r->user->jenjang) === 'SD')->count(),
+                    'total_smp_participants' => $examResults->filter(fn($r) => strtoupper($r->user->jenjang) === 'SMP')->count(),
+                    'highest_score_sd' => $sdResults->first()->calculated_score ?? 0,
+                    'highest_score_smp' => $smpResults->first()->calculated_score ?? 0,
+                    'average_score_sd' => round($sdResults->avg('calculated_score') ?? 0, 2),
+                    'average_score_smp' => round($smpResults->avg('calculated_score') ?? 0, 2),
                 ]
             ], 200);
 
@@ -276,14 +458,37 @@ class ExamController extends Controller
                 ->orderBy('submitted_at', $sortOrder)
                 ->paginate($perPage);
 
-            // Tambahkan skor ke setiap exam result
+            // Tambahkan skor berdasarkan sistem: benar +4, salah -1, kosong 0
             $examResults->getCollection()->transform(function ($examResult) {
-                $examResult->score = $examResult->score;
-                $examResult->correct_answers = $examResult->userAnswers()
-                    ->join('answers', 'user_answers.answer_id', '=', 'answers.id')
-                    ->where('answers.is_correct', true)
-                    ->count();
-                $examResult->total_questions = $examResult->userAnswers()->count();
+                $userAnswers = $examResult->userAnswers()->with(['answer'])->get();
+                
+                $totalScore = 0;
+                $correctAnswers = 0;
+                $incorrectAnswers = 0;
+                $unansweredQuestions = 0;
+                
+                foreach ($userAnswers as $userAnswer) {
+                    if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                        $totalScore += 0;
+                        $unansweredQuestions++;
+                    } elseif ($userAnswer->answer->is_correct) {
+                        $totalScore += 4;
+                        $correctAnswers++;
+                    } else {
+                        $totalScore -= 1;
+                        $incorrectAnswers++;
+                    }
+                }
+                
+                $totalQuestions = $userAnswers->count();
+                
+                $examResult->calculated_score = $totalScore;
+                $examResult->correct_answers = $correctAnswers;
+                $examResult->incorrect_answers = $incorrectAnswers;
+                $examResult->unanswered_questions = $unansweredQuestions;
+                $examResult->total_questions = $totalQuestions;
+                $examResult->percentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
+                
                 return $examResult;
             });
 
@@ -487,6 +692,203 @@ class ExamController extends Controller
                     'submitted_at' => $examResult->submitted_at
                 ]
             ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server',
+                'error' => app()->isLocal() ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/exam/science-competition/all-participants",
+     *     summary="Get all science competition participants",
+     *     description="Mengambil semua peserta science competition (yang sudah submit + yang belum submit)",
+     *     operationId="getAllScienceCompetitionParticipants",
+     *     tags={"Exam Results"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Jumlah item per halaman",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=20, minimum=1, maximum=100)
+     *     ),
+     *     @OA\Parameter(
+     *         name="level",
+     *         in="query",
+     *         description="Filter berdasarkan jenjang pendidikan",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"SD", "SMP", "sd", "smp"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="status",
+     *         in="query",
+     *         description="Filter berdasarkan status submit",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"submitted", "not_submitted", "all"}, default="all")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Data semua peserta science competition berhasil diambil",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Data semua peserta science competition berhasil diambil"),
+     *             @OA\Property(property="data", type="array"),
+     *             @OA\Property(property="pagination", ref="#/components/schemas/Pagination")
+     *         )
+     *     )
+     * )
+     */
+    public function getAllScienceCompetitionParticipants(Request $request): JsonResponse
+    {
+        try {
+            $perPage = $request->get('per_page', 20);
+            $level = $request->get('level');
+            $status = $request->get('status', 'all');
+
+            // Base query untuk science competition users
+            $query = User::where('jenis_lomba', 'science-competition')
+                ->with(['examResults']);
+
+            // Filter level kalau ada
+            if ($level) {
+                $query->where('jenjang', strtoupper($level));
+            }
+
+            // Filter status submit
+            if ($status === 'submitted') {
+                $query->whereHas('examResults');
+            } elseif ($status === 'not_submitted') {
+                $query->whereDoesntHave('examResults');
+            }
+
+            $users = $query->get();
+
+            // Transform data untuk menambahkan info exam
+            $transformedUsers = $users->map(function ($user) {
+                $examResult = $user->examResults->first(); // Ambil exam result pertama
+                
+                $userData = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'jenjang' => $user->jenjang,
+                    'jenis_lomba' => $user->jenis_lomba,
+                    'asal_sekolah' => $user->asal_sekolah,
+                    'kelas' => $user->kelas,
+                    'has_submitted' => $examResult ? true : false,
+                    'exam_result' => null,
+                    'calculated_score' => null,
+                    'submitted_at' => null
+                ];
+
+                // Jika ada exam result, hitung skornya
+                if ($examResult) {
+                    $userAnswers = $examResult->userAnswers()->with(['answer'])->get();
+                    
+                    $totalScore = 0;
+                    $correctAnswers = 0;
+                    $incorrectAnswers = 0;
+                    $unansweredQuestions = 0;
+                    
+                    foreach ($userAnswers as $userAnswer) {
+                        if (!$userAnswer->answer_id || !$userAnswer->answer) {
+                            $unansweredQuestions++;
+                        } elseif ($userAnswer->answer->is_correct) {
+                            $totalScore += 4;
+                            $correctAnswers++;
+                        } else {
+                            $totalScore -= 1;
+                            $incorrectAnswers++;
+                        }
+                    }
+                    
+                    $totalQuestions = $userAnswers->count();
+                    
+                    $userData['exam_result'] = [
+                        'id' => $examResult->id,
+                        'duration_in_minutes' => $examResult->duration_in_minutes,
+                        'total_violations' => $examResult->total_violations,
+                        'is_auto_submit' => $examResult->is_auto_submit,
+                        'submitted_at' => $examResult->submitted_at,
+                    ];
+                    $userData['calculated_score'] = $totalScore;
+                    $userData['correct_answers'] = $correctAnswers;
+                    $userData['incorrect_answers'] = $incorrectAnswers;
+                    $userData['unanswered_questions'] = $unansweredQuestions;
+                    $userData['total_questions'] = $totalQuestions;
+                    $userData['percentage'] = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
+                    $userData['submitted_at'] = $examResult->submitted_at;
+                }
+
+                return $userData;
+            });
+
+            // Sort berdasarkan skor tertinggi, yang sudah submit dulu, lalu yang belum submit
+            $transformedUsers = $transformedUsers->sortBy([
+                ['has_submitted', 'desc'], // Yang sudah submit dulu
+                ['calculated_score', 'desc'] // Lalu sort berdasarkan skor tertinggi
+            ])->values();
+
+            // Manual pagination setelah sorting
+            $total = $transformedUsers->count();
+            $currentPage = $request->get('page', 1);
+            $offset = ($currentPage - 1) * $perPage;
+            $itemsForCurrentPage = $transformedUsers->slice($offset, $perPage)->values();
+            $lastPage = ceil($total / $perPage);
+            $from = $total > 0 ? $offset + 1 : null;
+            $to = $total > 0 ? min($offset + $perPage, $total) : null;
+
+            // Statistik
+            $totalUsers = User::where('jenis_lomba', 'science-competition')->count();
+            $submittedUsers = User::where('jenis_lomba', 'science-competition')->whereHas('examResults')->count();
+            $notSubmittedUsers = $totalUsers - $submittedUsers;
+            
+            $sdTotal = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'sd')->count();
+            $smpTotal = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'smp')->count();
+            $sdSubmitted = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'sd')->whereHas('examResults')->count();
+            $smpSubmitted = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'smp')->whereHas('examResults')->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data semua peserta science competition berhasil diambil',
+                'data' => $itemsForCurrentPage,
+                'statistics' => [
+                    'total_participants' => $totalUsers,
+                    'submitted_participants' => $submittedUsers,
+                    'not_submitted_participants' => $notSubmittedUsers,
+                    'submission_rate' => $totalUsers > 0 ? round(($submittedUsers / $totalUsers) * 100, 2) : 0,
+                    'sd_statistics' => [
+                        'total' => $sdTotal,
+                        'submitted' => $sdSubmitted,
+                        'not_submitted' => $sdTotal - $sdSubmitted,
+                        'submission_rate' => $sdTotal > 0 ? round(($sdSubmitted / $sdTotal) * 100, 2) : 0
+                    ],
+                    'smp_statistics' => [
+                        'total' => $smpTotal,
+                        'submitted' => $smpSubmitted,
+                        'not_submitted' => $smpTotal - $smpSubmitted,
+                        'submission_rate' => $smpTotal > 0 ? round(($smpSubmitted / $smpTotal) * 100, 2) : 0
+                    ]
+                ],
+                'pagination' => [
+                    'current_page' => $currentPage,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                    'from' => $from,
+                    'to' => $to
+                ],
+                'filters' => [
+                    'jenis_lomba' => 'science-competition',
+                    'level' => $level,
+                    'status' => $status
+                ]
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([

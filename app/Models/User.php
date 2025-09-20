@@ -87,4 +87,26 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(ExamResult::class);
     }
 
+    /**
+     * Get the user's status record.
+     */
+    public function userStatus()
+    {
+        return $this->hasOne(UserStatus::class);
+    }
+
+    /**
+     * Check if user can login based on status.
+     */
+    public function canLogin(): bool
+    {
+        if (!$this->userStatus) {
+            // If no status record exists, create one with default 'can_login' status
+            $this->userStatus()->create(['status' => 'can_login']);
+            return true;
+        }
+        
+        return $this->userStatus->canLogin();
+    }
+
 }
