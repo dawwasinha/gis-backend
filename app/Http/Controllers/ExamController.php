@@ -73,7 +73,8 @@ class ExamController extends Controller
 
             // Ambil semua user dengan examResults
             $query = User::with(['examResults'])
-                ->where('jenis_lomba', 'science-competition');
+                ->where('jenis_lomba', 'science-competition')
+                ->where('status', 'success');
 
             // Filter level kalau ada
             if ($level) {
@@ -81,6 +82,8 @@ class ExamController extends Controller
             }
 
             $users = $query->get();
+
+
 
             $examResults = collect();
 
@@ -118,7 +121,8 @@ class ExamController extends Controller
                             'jenjang' => $user->jenjang,
                             'jenis_lomba' => $user->jenis_lomba,
                             'asal_sekolah' => $user->asal_sekolah,
-                            'kelas' => $user->kelas
+                            'kelas' => $user->kelas,
+                            'status' => $user->status
                         ],
                         'duration_in_minutes' => $examResult->duration_in_minutes,
                         'total_violations' => $examResult->total_violations,
@@ -752,7 +756,8 @@ class ExamController extends Controller
 
             // Base query untuk science competition users
             $query = User::where('jenis_lomba', 'science-competition')
-                ->with(['examResults']);
+                ->with(['examResults'])
+                ->where('status', 'success');
 
             // Filter level kalau ada
             if ($level) {
