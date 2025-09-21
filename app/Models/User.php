@@ -88,6 +88,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Get the user's answers to exam questions.
+     */
+    public function userAnswers()
+    {
+        return $this->hasMany(UserAnswer::class);
+    }
+
+    /**
      * Get the user's status record.
      */
     public function userStatus()

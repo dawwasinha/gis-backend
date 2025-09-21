@@ -754,28 +754,33 @@ class ExamController extends Controller
             $level = $request->get('level');
             $status = $request->get('status', 'all');
 
-            // Base query untuk science competition users
-            $query = User::where('jenis_lomba', 'science-competition')
-                ->with(['examResults'])
-                ->where('status', 'success');
+            // Base query untuk science competition users dengan status success onboarding
+            $baseQuery = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success'); // Status onboarding success
 
             // Filter level kalau ada
             if ($level) {
-                $query->where('jenjang', strtoupper($level));
+                $baseQuery->where('jenjang', strtoupper($level));
             }
 
-            // Filter status submit
+            // Filter status submit berdasarkan user_answers
             if ($status === 'submitted') {
-                $query->whereHas('examResults');
+                $baseQuery->whereHas('userAnswers');
             } elseif ($status === 'not_submitted') {
-                $query->whereDoesntHave('examResults');
+                $baseQuery->whereDoesntHave('userAnswers');
             }
 
-            $users = $query->get();
+            $users = $baseQuery->get();
 
-            // Transform data untuk menambahkan info exam
+            // Transform data dengan join 3 table: users, user_answers, exam_results
             $transformedUsers = $users->map(function ($user) {
-                $examResult = $user->examResults->first(); // Ambil exam result pertama
+                // Ambil semua user answers untuk user ini dengan relasi
+                $userAnswers = $user->userAnswers()
+                    ->with(['answer', 'question'])
+                    ->get();
+                
+                // Ambil exam result untuk user ini jika ada
+                $examResult = $user->examResults()->first();
                 
                 $userData = [
                     'id' => $user->id,
@@ -785,25 +790,34 @@ class ExamController extends Controller
                     'jenis_lomba' => $user->jenis_lomba,
                     'asal_sekolah' => $user->asal_sekolah,
                     'kelas' => $user->kelas,
-                    'has_submitted' => $examResult ? true : false,
+                    'onboarding_status' => $user->status, // Status onboarding
+                    'has_submitted' => $userAnswers->count() > 0,
                     'exam_result' => null,
-                    'calculated_score' => null,
-                    'submitted_at' => null
+                    'calculated_score' => 0,
+                    'submitted_at' => null,
+                    'correct_answers' => 0,
+                    'incorrect_answers' => 0,
+                    'unanswered_questions' => 0,
+                    'total_questions' => 0,
+                    'percentage' => 0,
+                    'total_violations' => 0,
+                    'duration_in_minutes' => 0,
+                    'is_auto_submit' => false
                 ];
 
-                // Jika ada exam result, hitung skornya
-                if ($examResult) {
-                    $userAnswers = $examResult->userAnswers()->with(['answer'])->get();
-                    
+                // Jika ada user answers, hitung skor dan statistik dari join 3 table
+                if ($userAnswers->count() > 0) {
                     $totalScore = 0;
                     $correctAnswers = 0;
                     $incorrectAnswers = 0;
                     $unansweredQuestions = 0;
                     
+                    // Hitung skor dari user_answers dengan join ke answers
                     foreach ($userAnswers as $userAnswer) {
                         if (!$userAnswer->answer_id || !$userAnswer->answer) {
                             $unansweredQuestions++;
-                        } elseif ($userAnswer->answer->is_correct) {
+                            // Skor 0 untuk yang kosong
+                        } elseif ($userAnswer->answer && $userAnswer->answer->is_correct) {
                             $totalScore += 4;
                             $correctAnswers++;
                         } else {
@@ -814,20 +828,34 @@ class ExamController extends Controller
                     
                     $totalQuestions = $userAnswers->count();
                     
-                    $userData['exam_result'] = [
-                        'id' => $examResult->id,
-                        'duration_in_minutes' => $examResult->duration_in_minutes,
-                        'total_violations' => $examResult->total_violations,
-                        'is_auto_submit' => $examResult->is_auto_submit,
-                        'submitted_at' => $examResult->submitted_at,
-                    ];
+                    // Update user data dengan hasil perhitungan
                     $userData['calculated_score'] = $totalScore;
                     $userData['correct_answers'] = $correctAnswers;
                     $userData['incorrect_answers'] = $incorrectAnswers;
                     $userData['unanswered_questions'] = $unansweredQuestions;
                     $userData['total_questions'] = $totalQuestions;
                     $userData['percentage'] = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
-                    $userData['submitted_at'] = $examResult->submitted_at;
+                    
+                    // Ambil data dari exam_results table jika ada
+                    if ($examResult) {
+                        $userData['exam_result'] = [
+                            'id' => $examResult->id,
+                            'duration_in_minutes' => $examResult->duration_in_minutes,
+                            'total_violations' => $examResult->total_violations,
+                            'is_auto_submit' => $examResult->is_auto_submit,
+                            'submitted_at' => $examResult->submitted_at,
+                        ];
+                        $userData['submitted_at'] = $examResult->submitted_at;
+                        $userData['total_violations'] = $examResult->total_violations;
+                        $userData['duration_in_minutes'] = $examResult->duration_in_minutes;
+                        $userData['is_auto_submit'] = $examResult->is_auto_submit;
+                    } else {
+                        // Jika tidak ada exam result, gunakan timestamp dari user answer terakhir
+                        $userData['submitted_at'] = $userAnswers->max('updated_at');
+                        $userData['total_violations'] = 0;
+                        $userData['duration_in_minutes'] = 0;
+                        $userData['is_auto_submit'] = false;
+                    }
                 }
 
                 return $userData;
@@ -848,19 +876,38 @@ class ExamController extends Controller
             $from = $total > 0 ? $offset + 1 : null;
             $to = $total > 0 ? min($offset + $perPage, $total) : null;
 
-            // Statistik
-            $totalUsers = User::where('jenis_lomba', 'science-competition')->count();
-            $submittedUsers = User::where('jenis_lomba', 'science-competition')->whereHas('examResults')->count();
+            // Statistik berdasarkan join 3 table
+            $totalUsers = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success') // Yang sudah lolos onboarding
+                ->count();
+            $submittedUsers = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success')
+                ->whereHas('userAnswers') // Yang sudah submit jawaban
+                ->count();
             $notSubmittedUsers = $totalUsers - $submittedUsers;
             
-            $sdTotal = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'sd')->count();
-            $smpTotal = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'smp')->count();
-            $sdSubmitted = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'sd')->whereHas('examResults')->count();
-            $smpSubmitted = User::where('jenis_lomba', 'science-competition')->where('jenjang', 'smp')->whereHas('examResults')->count();
+            $sdTotal = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success')
+                ->where('jenjang', 'sd')
+                ->count();
+            $smpTotal = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success')
+                ->where('jenjang', 'smp')
+                ->count();
+            $sdSubmitted = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success')
+                ->where('jenjang', 'sd')
+                ->whereHas('userAnswers')
+                ->count();
+            $smpSubmitted = User::where('jenis_lomba', 'science-competition')
+                ->where('status', 'success')
+                ->where('jenjang', 'smp')
+                ->whereHas('userAnswers')
+                ->count();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data semua peserta science competition berhasil diambil',
+                'message' => 'Data semua peserta science competition berhasil diambil (join users, user_answers, exam_results)',
                 'data' => $itemsForCurrentPage,
                 'statistics' => [
                     'total_participants' => $totalUsers,
@@ -891,7 +938,8 @@ class ExamController extends Controller
                 'filters' => [
                     'jenis_lomba' => 'science-competition',
                     'level' => $level,
-                    'status' => $status
+                    'status' => $status,
+                    'data_source' => 'join_3_tables'
                 ]
             ], 200);
 

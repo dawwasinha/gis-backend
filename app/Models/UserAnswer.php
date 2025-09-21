@@ -46,4 +46,9 @@ class UserAnswer extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function examResult()
+    {
+        return $this->belongsTo(ExamResult::class);
+    }
 }
