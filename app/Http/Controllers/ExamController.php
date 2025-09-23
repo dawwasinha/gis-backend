@@ -735,6 +735,20 @@ class ExamController extends Controller
      *         required=false,
      *         @OA\Schema(type="string", enum={"submitted", "not_submitted", "all"}, default="all")
      *     ),
+     *     @OA\Parameter(
+     *         name="name",
+     *         in="query",
+     *         description="Pencarian berdasarkan nama peserta (case-insensitive)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="John Doe")
+     *     ),
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="query",
+     *         description="Pencarian berdasarkan ID peserta (exact match)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=123)
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Data semua peserta science competition berhasil diambil",
@@ -753,6 +767,8 @@ class ExamController extends Controller
             $perPage = $request->get('per_page', 20);
             $level = $request->get('level');
             $status = $request->get('status', 'all');
+            $name = $request->get('name');
+            $id = $request->get('id');
 
             // Base query untuk science competition users dengan status success onboarding
             $baseQuery = User::where('jenis_lomba', 'science-competition')
@@ -763,13 +779,7 @@ class ExamController extends Controller
                 $baseQuery->where('jenjang', strtoupper($level));
             }
 
-            // Filter status submit berdasarkan user_answers
-            if ($status === 'submitted') {
-                $baseQuery->whereHas('userAnswers');
-            } elseif ($status === 'not_submitted') {
-                $baseQuery->whereDoesntHave('userAnswers');
-            }
-
+            // Ambil SEMUA users terlebih dahulu, baru filter setelah transform
             $users = $baseQuery->get();
 
             // Transform data dengan join 3 table: users, user_answers, exam_results
@@ -861,6 +871,32 @@ class ExamController extends Controller
                 return $userData;
             });
 
+            // Filter berdasarkan status SETELAH transform (agar tidak ada yang terlewat)
+            if ($status === 'submitted') {
+                $transformedUsers = $transformedUsers->filter(function ($user) {
+                    return $user['has_submitted'] === true;
+                });
+            } elseif ($status === 'not_submitted') {
+                $transformedUsers = $transformedUsers->filter(function ($user) {
+                    return $user['has_submitted'] === false;
+                });
+            }
+            // Jika $status === 'all', tidak perlu filter tambahan
+
+            // Filter berdasarkan nama (pencarian case-insensitive)
+            if ($name) {
+                $transformedUsers = $transformedUsers->filter(function ($user) use ($name) {
+                    return stripos($user['name'], $name) !== false;
+                });
+            }
+
+            // Filter berdasarkan ID (exact match)
+            if ($id) {
+                $transformedUsers = $transformedUsers->filter(function ($user) use ($id) {
+                    return $user['id'] == $id;
+                });
+            }
+
             // Sort berdasarkan skor tertinggi, yang sudah submit dulu, lalu yang belum submit
             $transformedUsers = $transformedUsers->sortBy([
                 ['has_submitted', 'desc'], // Yang sudah submit dulu
@@ -907,7 +943,7 @@ class ExamController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data semua peserta science competition berhasil diambil (join users, user_answers, exam_results)',
+                'message' => 'Data SEMUA peserta science competition berhasil diambil (termasuk yang sudah mengisi user_answers)',
                 'data' => $itemsForCurrentPage,
                 'statistics' => [
                     'total_participants' => $totalUsers,
@@ -939,6 +975,8 @@ class ExamController extends Controller
                     'jenis_lomba' => 'science-competition',
                     'level' => $level,
                     'status' => $status,
+                    'name' => $name,
+                    'id' => $id,
                     'data_source' => 'join_3_tables'
                 ]
             ], 200);
