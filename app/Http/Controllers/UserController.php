@@ -81,7 +81,55 @@ class UserController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-        return response()->json($user);
+
+        // Load user dengan relasi userAnnouncement
+        $userWithAnnouncement = User::with('userAnnouncement')->find($user->id);
+        
+        // Prepare pengumuman response
+        $pengumumanResponse = null;
+        $userAnnouncement = $userWithAnnouncement->userAnnouncement;
+        
+        if ($userAnnouncement) {
+            $pengumumanResponse = [
+                'id' => $userAnnouncement->id,
+                'status_lolos' => $userAnnouncement->status_lolos,
+                'is_lolos' => $userAnnouncement->isLolos(),
+                'is_tidak_lolos' => $userAnnouncement->isTidakLolos(),
+                'kategori_lomba' => $userAnnouncement->kategori_lomba,
+                'skor_akhir' => $userAnnouncement->skor_akhir,
+                'ranking' => $userAnnouncement->ranking,
+                'keterangan' => $userAnnouncement->keterangan,
+                'tanggal_pengumuman' => $userAnnouncement->tanggal_pengumuman?->format('Y-m-d H:i:s'),
+                'diumumkan_oleh' => $userAnnouncement->diumumkan_oleh,
+                'created_at' => $userAnnouncement->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $userAnnouncement->updated_at?->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        return response()->json([
+            'user' => [
+                'id' => $userWithAnnouncement->id,
+                'name' => $userWithAnnouncement->name,
+                'email' => $userWithAnnouncement->email,
+                'role' => $userWithAnnouncement->role,
+                'nisn' => $userWithAnnouncement->nisn,
+                'nomor_wa' => $userWithAnnouncement->nomor_wa,
+                'alamat' => $userWithAnnouncement->alamat,
+                'provinsi_id' => $userWithAnnouncement->provinsi_id,
+                'kabupaten_id' => $userWithAnnouncement->kabupaten_id,
+                'jenis_lomba' => $userWithAnnouncement->jenis_lomba,
+                'jenjang' => $userWithAnnouncement->jenjang,
+                'kelas' => $userWithAnnouncement->kelas,
+                'asal_sekolah' => $userWithAnnouncement->asal_sekolah,
+                'link_twibbon' => $userWithAnnouncement->link_twibbon,
+                'link_bukti_pembayaran' => $userWithAnnouncement->link_bukti_pembayaran,
+                'status' => $userWithAnnouncement->status,
+                'created_at' => $userWithAnnouncement->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $userWithAnnouncement->updated_at?->format('Y-m-d H:i:s'),
+            ],
+            'pengumuman' => $pengumumanResponse,
+            'has_announcement' => $userAnnouncement !== null,
+        ]);
     }
 
     public function participants(Request $request)

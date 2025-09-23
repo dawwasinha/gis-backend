@@ -93,7 +93,8 @@ Route::middleware(['jwt'])->group(function () {
 // Route::apiResource('users', UserController::class);
 
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'lo
+gin']);
 // Route::post('/register', function (Request $request) {
 //     return response()->json(['message' => 'Register endpoint']);
 // });
