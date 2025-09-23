@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\UsersExport;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
+use App\Models\UserAnnouncement;
 use Illuminate\Http\Request; 
 use App\Services\UserService;
 use App\Http\Requests\UserRequest;
@@ -159,6 +160,130 @@ class UserController extends Controller
     public function export(Request $request)
     {
         return Excel::download(new UsersExport, 'users.xlsx');
+    }
+
+    /**
+     * Announce user status (lolos/tidak lolos)
+     * 
+     * @OA\Post(
+     *     path="/api/users/{userId}/announce",
+     *     summary="Mengumumkan status lolos user",
+     *     tags={"Pengumuman"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="userId",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status_lolos"},
+     *             @OA\Property(property="status_lolos", type="string", enum={"lolos", "tidak_lolos"}),
+     *             @OA\Property(property="kategori_lomba", type="string"),
+     *             @OA\Property(property="skor_akhir", type="integer"),
+     *             @OA\Property(property="ranking", type="integer"),
+     *             @OA\Property(property="keterangan", type="string"),
+     *             @OA\Property(property="tanggal_pengumuman", type="string", format="date")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Status berhasil diumumkan"),
+     *     @OA\Response(response=422, description="Validasi gagal"),
+     *     @OA\Response(response=404, description="User tidak ditemukan")
+     * )
+     */
+    public function announceStatus(Request $request, $userId)
+    {
+        $request->validate([
+            'status_lolos' => 'required|in:lolos,tidak_lolos',
+            'kategori_lomba' => 'nullable|string|max:255',
+            'skor_akhir' => 'nullable|integer',
+            'ranking' => 'nullable|integer',
+            'keterangan' => 'nullable|string',
+            'tanggal_pengumuman' => 'nullable|date',
+        ]);
+
+        $user = User::findOrFail($userId);
+        
+        // Create or update announcement
+        $announcement = UserAnnouncement::updateOrCreate(
+            ['user_id' => $userId],
+            [
+                'status_lolos' => $request->status_lolos,
+                'kategori_lomba' => $request->kategori_lomba ?? $user->jenis_lomba,
+                'skor_akhir' => $request->skor_akhir,
+                'ranking' => $request->ranking,
+                'keterangan' => $request->keterangan,
+                'tanggal_pengumuman' => $request->tanggal_pengumuman ?? now(),
+                'diumumkan_oleh' => Auth::user()->name ?? 'System',
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Status pengumuman berhasil disimpan',
+            'data' => $announcement,
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Get user announcement
+     */
+    public function getAnnouncement($userId)
+    {
+        $user = User::with('userAnnouncement')->findOrFail($userId);
+        
+        return response()->json([
+            'user' => $user,
+            'announcement' => $user->userAnnouncement,
+            'has_announcement' => $user->hasAnnouncement()
+        ]);
+    }
+
+    /**
+     * Get all announcements
+     */
+    public function getAllAnnouncements(Request $request)
+    {
+        $query = UserAnnouncement::with('user');
+
+        // Filter by status lolos
+        if ($request->has('status_lolos')) {
+            $query->where('status_lolos', $request->status_lolos);
+        }
+
+        // Filter by kategori lomba
+        if ($request->has('kategori_lomba')) {
+            $query->where('kategori_lomba', $request->kategori_lomba);
+        }
+
+        // Order by ranking if available
+        if ($request->get('order_by') === 'ranking') {
+            $query->orderByRanking();
+        } else {
+            $query->orderBy('tanggal_pengumuman', 'desc');
+        }
+
+        $announcements = $query->paginate($request->get('per_page', 15));
+
+        return response()->json($announcements);
+    }
+
+    /**
+     * Delete user announcement
+     */
+    public function deleteAnnouncement($userId)
+    {
+        $announcement = UserAnnouncement::where('user_id', $userId)->first();
+        
+        if (!$announcement) {
+            return response()->json(['error' => 'Pengumuman tidak ditemukan'], 404);
+        }
+
+        $announcement->delete();
+
+        return response()->json(['message' => 'Pengumuman berhasil dihapus']);
     }
 
 }

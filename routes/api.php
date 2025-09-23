@@ -56,6 +56,17 @@ Route::middleware(['jwt'])->group(function () {
 
     Route::get('/karya/{id}', [KaryaController::class, 'show']);
     Route::apiResource('karya', KaryaController::class);
+    
+    // User bisa melihat pengumuman mereka sendiri
+    Route::get('/my-announcement', function(Request $request) {
+        $user = $request->user();
+        $announcement = $user->userAnnouncement;
+        
+        return response()->json([
+            'announcement' => $announcement,
+            'has_announcement' => $user->hasAnnouncement()
+        ]);
+    });
 
     // Grup khusus admin
     Route::middleware(['admin'])->group(function () {
@@ -66,7 +77,15 @@ Route::middleware(['jwt'])->group(function () {
 
         Route::patch('/invoices/{invoice}', [InvoiceController::class, 'update']);                      
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+        
+        // User management
         Route::apiResource('users', UserController::class);
+        
+        // Pengumuman management
+        Route::post('/users/{userId}/announce', [UserController::class, 'announceStatus']);
+        Route::get('/users/{userId}/announcement', [UserController::class, 'getAnnouncement']);
+        Route::delete('/users/{userId}/announcement', [UserController::class, 'deleteAnnouncement']);
+        Route::get('/announcements', [UserController::class, 'getAllAnnouncements']);
     });
 });
 

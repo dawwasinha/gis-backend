@@ -6,6 +6,7 @@ use App\Http\Requests\UserRequest;
 use App\Mail\ResetPasswordCodeMail;
 use App\Models\PasswordReset;
 use App\Models\UserStatus;
+use App\Models\UserAnnouncement;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Services\UserService;
@@ -99,6 +100,10 @@ class AuthController extends Controller
 
             // Cek status user di user_statuses setelah berhasil login
             $user = Auth::user();
+            
+            // Ambil data user dengan relasi announcement
+            $userWithAnnouncement = User::with('userAnnouncement')->find($user->id);
+            
             $userStatus = UserStatus::where('user_id', $user->id)->first();
 
             // Jika user status ada dan statusnya inactive, tolak login
@@ -113,15 +118,60 @@ class AuthController extends Controller
                 ], 403);
             }
 
+            // Jika tidak ada user status, buat default
+            if (!$userStatus) {
+                $userStatus = UserStatus::create([
+                    'user_id' => $user->id,
+                    'status' => 'can_login'
+                ]);
+            }
+
         } catch (JWTException $e) {
             return response()->json(['error' => 'Could not create token'], 500);
         }
 
+        // Prepare pengumuman response
+        $pengumumanResponse = null;
+        $userAnnouncement = $userWithAnnouncement->userAnnouncement;
+        
+        if ($userAnnouncement) {
+            $pengumumanResponse = [
+                'id' => $userAnnouncement->id,
+                'status_lolos' => $userAnnouncement->status_lolos,
+                'is_lolos' => $userAnnouncement->isLolos(),
+                'is_tidak_lolos' => $userAnnouncement->isTidakLolos(),
+                'kategori_lomba' => $userAnnouncement->kategori_lomba,
+                'skor_akhir' => $userAnnouncement->skor_akhir,
+                'ranking' => $userAnnouncement->ranking,
+                'keterangan' => $userAnnouncement->keterangan,
+                'tanggal_pengumuman' => $userAnnouncement->tanggal_pengumuman?->format('Y-m-d H:i:s'),
+                'diumumkan_oleh' => $userAnnouncement->diumumkan_oleh,
+                'created_at' => $userAnnouncement->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $userAnnouncement->updated_at?->format('Y-m-d H:i:s'),
+            ];
+        }
+
         return response()->json([
+            'success' => true,
+            'message' => 'Login berhasil',
             'token' => $token,
-            'role' => Auth::user()->role,
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
-            'user' => Auth::user(),
+            'token_type' => 'Bearer',
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
+            'user' => [
+                'id' => $userWithAnnouncement->id,
+                'name' => $userWithAnnouncement->name,
+                'email' => $userWithAnnouncement->email,
+                'role' => $userWithAnnouncement->role,
+                'nisn' => $userWithAnnouncement->nisn,
+                'nomor_wa' => $userWithAnnouncement->nomor_wa,
+                'jenis_lomba' => $userWithAnnouncement->jenis_lomba,
+                'jenjang' => $userWithAnnouncement->jenjang,
+                'kelas' => $userWithAnnouncement->kelas,
+                'asal_sekolah' => $userWithAnnouncement->asal_sekolah,
+                'status' => $userWithAnnouncement->status,
+            ],
+            'pengumuman' => $pengumumanResponse,
+            'has_announcement' => $userAnnouncement !== null,
         ]);
     }
 

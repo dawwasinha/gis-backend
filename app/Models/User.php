@@ -104,6 +104,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Get the user's announcement record.
+     */
+    public function userAnnouncement()
+    {
+        return $this->hasOne(UserAnnouncement::class);
+    }
+
+    /**
      * Check if user can login based on status.
      */
     public function canLogin(): bool
@@ -115,6 +123,22 @@ class User extends Authenticatable implements JWTSubject
         }
         
         return $this->userStatus->canLogin();
+    }
+
+    /**
+     * Check if user has announcement (lolos/tidak lolos).
+     */
+    public function hasAnnouncement(): bool
+    {
+        return $this->userAnnouncement !== null;
+    }
+
+    /**
+     * Get user's status lolos.
+     */
+    public function getStatusLolos(): ?string
+    {
+        return $this->userAnnouncement?->status_lolos;
     }
 
 }

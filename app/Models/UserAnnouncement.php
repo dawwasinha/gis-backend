@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserStatus extends Model
+class UserAnnouncement extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -14,12 +14,13 @@ class UserStatus extends Model
      */
     protected $fillable = [
         'user_id',
-        'status',
         'status_lolos',
+        'kategori_lomba',
+        'skor_akhir',
+        'ranking',
+        'keterangan',
         'tanggal_pengumuman',
-        'keterangan_lolos',
-        'reason',
-        'last_cbt_submission',
+        'diumumkan_oleh',
     ];
 
     /**
@@ -28,40 +29,17 @@ class UserStatus extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'last_cbt_submission' => 'datetime',
         'tanggal_pengumuman' => 'datetime',
+        'skor_akhir' => 'integer',
+        'ranking' => 'integer',
     ];
 
     /**
-     * Get the user that owns the status.
+     * Get the user that owns the announcement.
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Check if user can login.
-     */
-    public function canLogin(): bool
-    {
-        return in_array($this->status, ['active', 'can_login']);
-    }
-
-    /**
-     * Scope query to get users who can login.
-     */
-    public function scopeCanLogin($query)
-    {
-        return $query->whereIn('status', ['active', 'can_login']);
-    }
-
-    /**
-     * Scope query to get users who cannot login.
-     */
-    public function scopeCannotLogin($query)
-    {
-        return $query->whereIn('status', ['inactive', 'suspended', 'cannot_login']);
     }
 
     /**
@@ -81,14 +59,6 @@ class UserStatus extends Model
     }
 
     /**
-     * Check if pengumuman sudah keluar.
-     */
-    public function isPengumumanSudahKeluar(): bool
-    {
-        return $this->status_lolos !== 'belum_diumumkan';
-    }
-
-    /**
      * Scope query to get users who lolos.
      */
     public function scopeLolos($query)
@@ -105,10 +75,18 @@ class UserStatus extends Model
     }
 
     /**
-     * Scope query to get users with pengumuman sudah keluar.
+     * Scope query to get announcements by kategori lomba.
      */
-    public function scopePengumumanSudahKeluar($query)
+    public function scopeByKategori($query, $kategori)
     {
-        return $query->whereIn('status_lolos', ['lolos', 'tidak_lolos']);
+        return $query->where('kategori_lomba', $kategori);
+    }
+
+    /**
+     * Scope query to get announcements ordered by ranking.
+     */
+    public function scopeOrderByRanking($query)
+    {
+        return $query->orderBy('ranking', 'asc');
     }
 }
