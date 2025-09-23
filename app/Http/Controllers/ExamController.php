@@ -743,6 +743,20 @@ class ExamController extends Controller
      *         @OA\Schema(type="string", example="John Doe")
      *     ),
      *     @OA\Parameter(
+     *         name="email",
+     *         in="query",
+     *         description="Pencarian berdasarkan email peserta (case-insensitive)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="john@example.com")
+     *     ),
+     *     @OA\Parameter(
+     *         name="asal_sekolah",
+     *         in="query",
+     *         description="Pencarian berdasarkan asal sekolah (case-insensitive)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="SMA Negeri 1")
+     *     ),
+     *     @OA\Parameter(
      *         name="id",
      *         in="query",
      *         description="Pencarian berdasarkan ID peserta (exact match)",
@@ -768,6 +782,8 @@ class ExamController extends Controller
             $level = $request->get('level');
             $status = $request->get('status', 'all');
             $name = $request->get('name');
+            $email = $request->get('email');
+            $asal_sekolah = $request->get('asal_sekolah');
             $id = $request->get('id');
 
             // Base query untuk science competition users dengan status success onboarding
@@ -890,6 +906,20 @@ class ExamController extends Controller
                 });
             }
 
+            // Filter berdasarkan email (pencarian case-insensitive)
+            if ($email) {
+                $transformedUsers = $transformedUsers->filter(function ($user) use ($email) {
+                    return stripos($user['email'], $email) !== false;
+                });
+            }
+
+            // Filter berdasarkan asal sekolah (pencarian case-insensitive)
+            if ($asal_sekolah) {
+                $transformedUsers = $transformedUsers->filter(function ($user) use ($asal_sekolah) {
+                    return stripos($user['asal_sekolah'], $asal_sekolah) !== false;
+                });
+            }
+
             // Filter berdasarkan ID (exact match)
             if ($id) {
                 $transformedUsers = $transformedUsers->filter(function ($user) use ($id) {
@@ -976,6 +1006,8 @@ class ExamController extends Controller
                     'level' => $level,
                     'status' => $status,
                     'name' => $name,
+                    'email' => $email,
+                    'asal_sekolah' => $asal_sekolah,
                     'id' => $id,
                     'data_source' => 'join_3_tables'
                 ]
